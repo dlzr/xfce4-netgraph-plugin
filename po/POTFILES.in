@@ -1,0 +1,3 @@
+panel-plugin/netgraph.c
+panel-plugin/netgraph-dialogs.c
+panel-plugin/netgraph.desktop.in

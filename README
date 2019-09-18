@@ -1,0 +1,17 @@
+What is it?
+===========
+
+This is a plugin for the Xfce panel that shows a graph of the recent network
+traffic, similar to the CPU Graph plugin.
+
+
+Installation
+============
+
+The file 'INSTALL' contains generic installation instructions.
+
+
+How to report bugs?
+===================
+
+TODO

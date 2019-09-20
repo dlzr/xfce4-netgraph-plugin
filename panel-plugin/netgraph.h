@@ -32,10 +32,9 @@ typedef struct {
 
 	guint size;
 	guint update_interval;
+	gchar *devname;  /* NULL when monitoring all interfaces. */
 	gboolean has_frame;
 	gboolean has_border;
-
-	guint timeout_id;
 
 	GtkWidget *ebox;
 	GtkWidget *box;
@@ -43,14 +42,20 @@ typedef struct {
 	GtkWidget *draw_area;
 	GtkWidget *tooltip_label;
 
-	NetworkDevice **devs;
-	gsize devs_len;
+	GPtrArray *devs;
+	gsize hist_len;
+	guint timeout_id;
 } NetgraphPlugin;
 
 void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this);
 
 void netgraph_set_size(NetgraphPlugin *this, guint size);
 void netgraph_set_update_interval(NetgraphPlugin *this, guint update_interval);
+
+/* TODO: This should be moved to xfce-rc.h */
+#if GLIB_CHECK_VERSION(2, 44, 0)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(XfceRc, xfce_rc_close)
+#endif
 
 G_END_DECLS
 

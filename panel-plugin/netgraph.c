@@ -42,10 +42,12 @@ static NetgraphPlugin *netgraph_new(XfcePanelPlugin *plugin);
 static void netgraph_free(XfcePanelPlugin *plugin, NetgraphPlugin *this);
 static void netgraph_load(NetgraphPlugin *this);
 static void on_draw(GtkWidget *widget, cairo_t *cr, NetgraphPlugin *this);
-static gboolean on_update(NetgraphPlugin *this);
 static gboolean on_size_changed(XfcePanelPlugin *plugin, guint size, NetgraphPlugin *this);
 static void on_orientation_changed(XfcePanelPlugin *plugin, GtkOrientation orientation, NetgraphPlugin *this);
 static void show_tooltip(NetgraphPlugin *this);
+static gboolean on_update(NetgraphPlugin *this);
+static void update_netdev_list(NetgraphPlugin *this);
+static void update_netdev_stats(NetgraphPlugin *this);
 
 static void netgraph_construct(XfcePanelPlugin *plugin)
 {
@@ -98,6 +100,8 @@ static NetgraphPlugin *netgraph_new(XfcePanelPlugin *plugin)
 	this->tooltip_label = gtk_label_new(NULL);
 	g_object_ref(this->tooltip_label);
 
+	this->devs = g_ptr_array_new_with_free_func((GDestroyNotify)netdev_free);
+
 	return this;
 }
 
@@ -105,27 +109,28 @@ static void netgraph_free(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 {
 	/* Destroy the configuration dialog if it's still open. */
 	GtkWidget *dialog = g_object_get_data(G_OBJECT(plugin), "dialog");
-	if (dialog) {
-		gtk_widget_destroy(dialog);
-	}
+	if (dialog) gtk_widget_destroy(dialog);
 
 	if (this->timeout_id) g_source_remove(this->timeout_id);
 
 	gtk_widget_destroy(this->ebox);
 	gtk_widget_destroy(this->tooltip_label);
 
-	// TODO: clear the netdev data
+	g_ptr_array_free(this->devs, TRUE);
+
+	g_free(this->devname);
 
 	g_slice_free(NetgraphPlugin, this);
 }
 
 static void netgraph_load(NetgraphPlugin *this)
 {
-	gchar *file = xfce_panel_plugin_lookup_rc_file(this->plugin);
+	g_autofree gchar *file =
+		xfce_panel_plugin_lookup_rc_file(this->plugin);
 	if (!file) return;
 
-	XfceRc *rc = xfce_rc_simple_open(file, TRUE);
-	if (!rc) goto free;
+	g_autoptr(XfceRc) rc = xfce_rc_simple_open(file, TRUE);
+	if (!rc) return;
 
 	guint size = xfce_rc_read_int_entry(rc, "size", DEFAULT_SIZE);
 	netgraph_set_size(this, size);
@@ -135,27 +140,19 @@ static void netgraph_load(NetgraphPlugin *this)
 	guint update_interval = xfce_rc_read_int_entry(
 		rc, "update_interval", DEFAULT_UPDATE_INTERVAL);
 	netgraph_set_update_interval(this, update_interval);
-
-
-	xfce_rc_close(rc);
-free:
-	g_free(file);
 }
 
 void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 {
-	gchar *file = xfce_panel_plugin_save_location(plugin, TRUE);
+	g_autofree gchar *file =
+		xfce_panel_plugin_save_location(plugin, TRUE);
 	if (!file) return;
 
-	XfceRc *rc = xfce_rc_simple_open(file, FALSE);
-	if (!rc) goto free;
+	g_autoptr(XfceRc) rc = xfce_rc_simple_open(file, FALSE);
+	if (!rc) return;
 
 	xfce_rc_write_int_entry (rc, "size", this->size);
 	xfce_rc_write_int_entry (rc, "update_interval", this->update_interval);
-
-	xfce_rc_close(rc);
-free:
-	g_free(file);
 }
 
 void netgraph_set_size(NetgraphPlugin *this, guint size)
@@ -185,15 +182,6 @@ static void on_draw(GtkWidget *widget, cairo_t *cr, NetgraphPlugin *this)
 	cairo_fill(cr);
 }
 
-static gboolean on_update(NetgraphPlugin *this)
-{
-	/* TODO: Read the netdevice data. */
-
-	gtk_widget_queue_draw(this->draw_area);
-
-	return TRUE;  /* Keep the timeout active. */
-}
-
 static gboolean on_size_changed(XfcePanelPlugin *plugin,
 				guint size,
 				NetgraphPlugin *this)
@@ -210,9 +198,13 @@ static gboolean on_size_changed(XfcePanelPlugin *plugin,
 
 	gtk_widget_set_size_request(GTK_WIDGET(this->frame), width, height);
 
-	for (guint i = 0; i < this->devs_len; i++) {
-		netdev_resize(this->devs[i], width);
+	if (width != this->hist_len) {
+		for (gsize i = 0; i < this->devs->len; i++) {
+			NetworkDevice *dev = g_ptr_array_index(this->devs, i);
+			netdev_resize(dev, this->hist_len, width);
+		}
 	}
+	this->hist_len = width;
 
 	return TRUE;
 }
@@ -227,6 +219,68 @@ static void on_orientation_changed(XfcePanelPlugin *plugin,
 static void show_tooltip(NetgraphPlugin *this)
 {
 	// TODO
+}
+
+static gboolean on_update(NetgraphPlugin *this)
+{
+	if (this->devname == NULL) update_netdev_list(this);
+
+	update_netdev_stats(this);
+
+	gtk_widget_queue_draw(this->draw_area);
+
+	return TRUE;  /* Keep the timeout active. */
+}
+
+static void update_netdev_list(NetgraphPlugin *this)
+{
+	g_autoptr(GPtrArray) devnames = netdev_enumerate();
+	if (!devnames) return;
+
+	gsize i, j;
+	for (i = j = 0; i < devnames->len && j < this->devs->len; ) {
+		gchar *devname = g_ptr_array_index(devnames, i);
+		NetworkDevice *dev = g_ptr_array_index(this->devs, j);
+
+		gint cmp = g_strcmp0(devname, dev->name);
+		if (cmp == 0) {
+			i++;
+			j++;
+		} else if (cmp < 0) {
+			/* A new netdev appeared, need to add it to devs. */
+			g_ptr_array_insert(this->devs, j,
+					   netdev_new(devname, this->hist_len));
+			i++;
+			j++;
+		} else {
+			/* The current element in devs seems to have
+			 * disappeared.  It will get cleaned up later, once
+			 * it's been down long enough. */
+			j++;
+		}
+	}
+	for (; i < devnames->len; i++) {
+		gchar *devname = g_ptr_array_index(devnames, i);
+		g_ptr_array_add(this->devs, netdev_new(devname, this->hist_len));
+	}
+}
+
+static void update_netdev_stats(NetgraphPlugin *this)
+{
+	for (gsize i = 0; i < this->devs->len; i++) {
+		NetworkDevice *dev = g_ptr_array_index(this->devs, i);
+		netdev_update(dev, this->hist_len);
+
+		/* Don't clean up devs if we're monitoring a specific interface. */
+		if (this->devname != NULL) continue;
+
+		if (dev->down >= this->hist_len) {
+			/* The device has been down for too long (it no longer
+			 * has data in the history), so we stop tracking it. */
+			g_ptr_array_remove_index(this->devs, i);
+			i--;
+		}
+	}
 }
 
 XFCE_PANEL_PLUGIN_REGISTER(netgraph_construct);

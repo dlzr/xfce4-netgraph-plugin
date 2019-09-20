@@ -24,16 +24,32 @@
 G_BEGIN_DECLS
 
 typedef struct {
-	char *name;  /* Interface name. */
+	gchar *name;  /* Interface name. */
 
-	guint *samples_rx;  /* Download traffic. */
-	guint *samples_tx;  /* Upload traffic. */
-	gsize samples_len;
+	guint64 rx_bytes;
+	guint64 tx_bytes;
+
+	guint64 *hist_rx;  /* Download traffic. */
+	guint64 *hist_tx;  /* Upload traffic. */
+	guint64 max_rx;
+	guint64 max_tx;
+
+	guint down;  /* Number of updates when the interface was down. */
+
+#ifdef __linux__
+	gchar *state_file;
+	gchar *rx_bytes_file;
+	gchar *tx_bytes_file;
+#endif
 } NetworkDevice;
 
-NetworkDevice *netdev_new(gchar *name);
+
+GPtrArray *netdev_enumerate(void);
+
+NetworkDevice *netdev_new(gchar *name, gsize hist_len);
 void netdev_free(NetworkDevice* this);
-void netdev_resize(NetworkDevice *this, gsize len);
+void netdev_resize(NetworkDevice *this, gsize oldlen, gsize newlen);
+void netdev_update(NetworkDevice *this, gsize hist_len);
 
 G_END_DECLS
 

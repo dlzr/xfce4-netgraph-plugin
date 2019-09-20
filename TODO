@@ -1,3 +1,6 @@
 * Update icons, create SVG version of the icon.
 
 * email about changes to /usr/share/xfce4/dev-tools/m4macros/xdt-features.m4
+
+* add G_DEFINE_AUTOPTR_CLEANUP_FUNC() for XfceRc.
+  libxfce4util-4.14.0/libxfce4util/xfce-rc.h

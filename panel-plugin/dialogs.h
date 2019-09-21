@@ -16,8 +16,11 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __NETGRAPH_DIALOGS_H__
-#define __NETGRAPH_DIALOGS_H__
+#ifndef __DIALOGS_H__
+#define __DIALOGS_H__
+
+#include <libxfce4ui/libxfce4ui.h>
+#include <libxfce4panel/xfce-panel-plugin.h>
 
 #include "netgraph.h"
 
@@ -28,4 +31,4 @@ void netgraph_about(XfcePanelPlugin *plugin);
 
 G_END_DECLS
 
-#endif  /* __NETGRAPH_DIALOGS_H__ */
+#endif  /* __DIALOGS_H__ */

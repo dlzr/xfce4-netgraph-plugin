@@ -16,6 +16,8 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "dialogs.h"
+
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -27,7 +29,6 @@
 #include <libxfce4panel/xfce-panel-plugin.h>
 
 #include "netgraph.h"
-#include "configure.h"
 
 #define PLUGIN_WEBSITE "https://TODO"
 

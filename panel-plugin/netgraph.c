@@ -29,7 +29,7 @@
 #include <libxfce4util/libxfce4util.h>
 #include <libxfce4panel/xfce-panel-plugin.h>
 
-#include "configure.h"
+#include "dialogs.h"
 #include "netdev.h"
 
 

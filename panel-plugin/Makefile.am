@@ -14,8 +14,8 @@ plugindir = \
 	$(libdir)/xfce4/panel/plugins
 
 libnetgraph_la_SOURCES = \
-	configure.c \
-	configure.h \
+	dialogs.c \
+	dialogs.h \
 	netdev.c \
 	netdev.h \
 	netgraph.c \

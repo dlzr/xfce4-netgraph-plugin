@@ -32,7 +32,7 @@ static void netdev_os_free(NetworkDevice *this);
 static void netdev_os_read_stats(NetworkDevice *this, DeviceStats* stats);
 
 #ifdef __linux__
-#include "os_linux.c"
+#include "netdev_linux.c"
 #endif
 
 

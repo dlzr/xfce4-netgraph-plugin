@@ -42,6 +42,8 @@ static NetgraphPlugin *netgraph_new(XfcePanelPlugin *plugin);
 static void netgraph_free(XfcePanelPlugin *plugin, NetgraphPlugin *this);
 static void netgraph_load(NetgraphPlugin *this);
 static void on_draw(GtkWidget *widget, cairo_t *cr, NetgraphPlugin *this);
+static gdouble get_rx_fraction(NetgraphPlugin *this, gsize idx);
+static gdouble get_tx_fraction(NetgraphPlugin *this, gsize idx);
 static gboolean on_size_changed(XfcePanelPlugin *plugin, guint size, NetgraphPlugin *this);
 static void on_orientation_changed(XfcePanelPlugin *plugin, GtkOrientation orientation, NetgraphPlugin *this);
 static void show_tooltip(NetgraphPlugin *this);
@@ -84,11 +86,13 @@ static NetgraphPlugin *netgraph_new(XfcePanelPlugin *plugin)
 
 	GtkOrientation orientation = xfce_panel_plugin_get_orientation(plugin);
 	this->box = gtk_box_new(orientation, 0);
+	gtk_container_set_border_width(GTK_CONTAINER(this->box), 2);
 	gtk_container_add(GTK_CONTAINER(this->ebox), this->box);
 	gtk_widget_set_has_tooltip(this->box, TRUE);
 	g_signal_connect(this->box, "query-tooltip", G_CALLBACK(show_tooltip), this);
 
 	this->frame = gtk_frame_new(NULL);
+	gtk_frame_set_shadow_type(GTK_FRAME(this->frame), this->has_frame ? GTK_SHADOW_IN : GTK_SHADOW_NONE);
 	gtk_box_pack_end(GTK_BOX(this->box), this->frame, TRUE, TRUE, 0);
 
 	this->draw_area = gtk_drawing_area_new();
@@ -173,13 +177,61 @@ static void on_draw(GtkWidget *widget, cairo_t *cr, NetgraphPlugin *this)
 {
 	GtkAllocation alloc;
 	gtk_widget_get_allocation(this->draw_area, &alloc);
+	guint w = alloc.width;
+	guint h = alloc.height;
+
+	if (w > this->hist_len) w = this->hist_len;
 
 	GdkRGBA color;
 	gdk_rgba_parse(&color, "#884444");
-
 	gdk_cairo_set_source_rgba(cr, &color);
-	cairo_rectangle(cr, 0, 0, alloc.width, alloc.height);
+	cairo_rectangle(cr, 0, 0, w, h);
 	cairo_fill(cr);
+
+	cairo_set_line_width(cr, 1.0);
+	cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
+
+	gdk_rgba_parse(&color, "#00ff00");
+	gdk_cairo_set_source_rgba(cr, &color);
+	for (guint x = 0; x < w; x++) {
+		guint seg = (guint)(h * get_rx_fraction(this, w - 1 - x));
+		if (!seg) continue;
+
+		cairo_move_to(cr, x + 0.5, h - seg - 0.5);
+		cairo_line_to(cr, x + 0.5, h - 0.5);
+		cairo_stroke(cr);
+	}
+
+	gdk_rgba_parse(&color, "#ffff00");
+	gdk_cairo_set_source_rgba(cr, &color);
+	for (guint x = 0; x < w; x++) {
+		guint seg = (guint)(h * get_tx_fraction(this, w - 1 - x));
+		if (!seg) continue;
+
+		cairo_move_to(cr, x + 0.5, 0.5);
+		cairo_line_to(cr, x + 0.5, seg - 0.5);
+		cairo_stroke(cr);
+	}
+}
+
+static gdouble get_rx_fraction(NetgraphPlugin *this, gsize idx)
+{
+	guint64 rx = 0;
+	for (gsize i = 0; i < this->devs->len; i++) {
+		NetworkDevice *dev = g_ptr_array_index(this->devs, i);
+		rx += dev->hist_rx[idx];
+	}
+	return (gdouble)rx / (gdouble)this->scale;
+}
+
+static gdouble get_tx_fraction(NetgraphPlugin *this, gsize idx)
+{
+	guint64 tx = 0;
+	for (gsize i = 0; i < this->devs->len; i++) {
+		NetworkDevice *dev = g_ptr_array_index(this->devs, i);
+		tx += dev->hist_tx[idx];
+	}
+	return (gdouble)tx / (gdouble)this->scale;
 }
 
 static gboolean on_size_changed(XfcePanelPlugin *plugin,
@@ -267,20 +319,28 @@ static void update_netdev_list(NetgraphPlugin *this)
 
 static void update_netdev_stats(NetgraphPlugin *this)
 {
+	this->scale = 0;
+
 	for (gsize i = 0; i < this->devs->len; i++) {
 		NetworkDevice *dev = g_ptr_array_index(this->devs, i);
 		netdev_update(dev, this->hist_len);
 
 		/* Don't clean up devs if we're monitoring a specific interface. */
-		if (this->devname != NULL) continue;
-
-		if (dev->down >= this->hist_len) {
-			/* The device has been down for too long (it no longer
-			 * has data in the history), so we stop tracking it. */
-			g_ptr_array_remove_index(this->devs, i);
-			i--;
+		if (this->devname == NULL) {
+			if (dev->down >= this->hist_len) {
+				/* The device has been down for too long (it no longer
+				 * has data in the history), so we stop tracking it. */
+				g_ptr_array_remove_index(this->devs, i);
+				i--;
+				continue;
+			}
 		}
+
+		this->scale += dev->max_rx + dev->max_tx;
 	}
+
+	/* TODO: Make the minimum scale configurable. */
+	if (this->scale < 5120) this->scale = 5120;
 }
 
 XFCE_PANEL_PLUGIN_REGISTER(netgraph_construct);

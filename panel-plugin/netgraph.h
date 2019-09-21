@@ -41,10 +41,11 @@ typedef struct {
 	GtkWidget *frame;
 	GtkWidget *draw_area;
 	GtkWidget *tooltip_label;
+	guint timeout_id;
 
 	GPtrArray *devs;
 	gsize hist_len;
-	guint timeout_id;
+	guint64 scale;
 } NetgraphPlugin;
 
 void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this);

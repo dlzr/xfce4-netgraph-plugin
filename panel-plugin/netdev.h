@@ -49,7 +49,7 @@ GPtrArray *netdev_enumerate(void);
 NetworkDevice *netdev_new(gchar *name, gsize hist_len);
 void netdev_free(NetworkDevice* this);
 void netdev_resize(NetworkDevice *this, gsize oldlen, gsize newlen);
-void netdev_update(NetworkDevice *this, gsize hist_len);
+void netdev_update(NetworkDevice *this, gsize hist_len, guint interval);
 
 G_END_DECLS
 

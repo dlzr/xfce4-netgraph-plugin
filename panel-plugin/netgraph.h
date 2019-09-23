@@ -40,7 +40,6 @@ typedef struct {
 	GtkWidget *box;
 	GtkWidget *frame;
 	GtkWidget *draw_area;
-	GtkWidget *tooltip_label;
 	guint timeout_id;
 
 	GPtrArray *devs;

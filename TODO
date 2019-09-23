@@ -4,3 +4,5 @@
 
 * add G_DEFINE_AUTOPTR_CLEANUP_FUNC() for XfceRc.
   libxfce4util-4.14.0/libxfce4util/xfce-rc.h
+
+* fix tooltip bug in gtk+

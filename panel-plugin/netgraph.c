@@ -46,10 +46,11 @@ static gdouble get_rx_fraction(NetgraphPlugin *this, gsize idx);
 static gdouble get_tx_fraction(NetgraphPlugin *this, gsize idx);
 static gboolean on_size_changed(XfcePanelPlugin *plugin, guint size, NetgraphPlugin *this);
 static void on_orientation_changed(XfcePanelPlugin *plugin, GtkOrientation orientation, NetgraphPlugin *this);
-static void show_tooltip(NetgraphPlugin *this);
 static gboolean on_update(NetgraphPlugin *this);
 static void update_netdev_list(NetgraphPlugin *this);
 static void update_netdev_stats(NetgraphPlugin *this);
+static void update_tooltip(NetgraphPlugin *this);
+static gchar *format_human_size(guint64 num, gchar *buf, gsize bufsize);
 
 static void netgraph_construct(XfcePanelPlugin *plugin)
 {
@@ -88,8 +89,6 @@ static NetgraphPlugin *netgraph_new(XfcePanelPlugin *plugin)
 	this->box = gtk_box_new(orientation, 0);
 	gtk_container_set_border_width(GTK_CONTAINER(this->box), 2);
 	gtk_container_add(GTK_CONTAINER(this->ebox), this->box);
-	gtk_widget_set_has_tooltip(this->box, TRUE);
-	g_signal_connect(this->box, "query-tooltip", G_CALLBACK(show_tooltip), this);
 
 	this->frame = gtk_frame_new(NULL);
 	gtk_frame_set_shadow_type(GTK_FRAME(this->frame), this->has_frame ? GTK_SHADOW_IN : GTK_SHADOW_NONE);
@@ -100,9 +99,6 @@ static NetgraphPlugin *netgraph_new(XfcePanelPlugin *plugin)
 	g_signal_connect_after(this->draw_area, "draw", G_CALLBACK(on_draw), this);
 
 	gtk_widget_show_all(this->ebox);
-
-	this->tooltip_label = gtk_label_new(NULL);
-	g_object_ref(this->tooltip_label);
 
 	this->devs = g_ptr_array_new_with_free_func((GDestroyNotify)netdev_free);
 
@@ -118,7 +114,6 @@ static void netgraph_free(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 	if (this->timeout_id) g_source_remove(this->timeout_id);
 
 	gtk_widget_destroy(this->ebox);
-	gtk_widget_destroy(this->tooltip_label);
 
 	g_ptr_array_free(this->devs, TRUE);
 
@@ -268,17 +263,12 @@ static void on_orientation_changed(XfcePanelPlugin *plugin,
 	// TODO
 }
 
-static void show_tooltip(NetgraphPlugin *this)
-{
-	// TODO
-}
-
 static gboolean on_update(NetgraphPlugin *this)
 {
 	if (this->devname == NULL) update_netdev_list(this);
 
 	update_netdev_stats(this);
-
+	update_tooltip(this);
 	gtk_widget_queue_draw(this->draw_area);
 
 	return TRUE;  /* Keep the timeout active. */
@@ -323,7 +313,7 @@ static void update_netdev_stats(NetgraphPlugin *this)
 
 	for (gsize i = 0; i < this->devs->len; i++) {
 		NetworkDevice *dev = g_ptr_array_index(this->devs, i);
-		netdev_update(dev, this->hist_len);
+		netdev_update(dev, this->hist_len, this->update_interval);
 
 		/* Don't clean up devs if we're monitoring a specific interface. */
 		if (this->devname == NULL) {
@@ -341,6 +331,68 @@ static void update_netdev_stats(NetgraphPlugin *this)
 
 	/* TODO: Make the minimum scale configurable. */
 	if (this->scale < 5120) this->scale = 5120;
+}
+
+static void update_tooltip(NetgraphPlugin *this)
+{
+	g_autoptr(GString) label = g_string_new("");
+
+#define BUFSIZE	32
+	gchar rx_buf[BUFSIZE], tx_buf[BUFSIZE];
+	for (gsize i = 0; i < this->devs->len; i++) {
+		NetworkDevice *dev = g_ptr_array_index(this->devs, i);
+		format_human_size(dev->hist_rx[0], rx_buf, BUFSIZE);
+		format_human_size(dev->hist_tx[0], tx_buf, BUFSIZE);
+		g_string_append_printf(
+			label, "<b>%s</b>: %sB/s down; %sB/s up\n",
+			dev->name, rx_buf, tx_buf);
+	}
+
+	format_human_size(this->scale, rx_buf, BUFSIZE);
+	g_string_append_printf(label, "current scale: %sB/s", rx_buf);
+
+	gtk_widget_set_tooltip_markup(GTK_WIDGET(this->box), label->str);
+#undef BUFSIZE
+}
+
+static gchar *format_human_size(guint64 num, gchar *buf, gsize bufsize)
+{
+	if (num < 1024) {
+		g_snprintf(buf, bufsize, "%ld ", num);
+	} else if (num < 10240) {
+		g_snprintf(buf, bufsize, "%.2f K", (gdouble)num / 1024UL);
+	} else if (num < 102400) {
+		g_snprintf(buf, bufsize, "%.1f K", (gdouble)num / 1024UL);
+	} else if (num < 1024UL * 1024) {
+		g_snprintf(buf, bufsize, "%.0f K", (gdouble)num / 1024UL);
+	} else if (num < 1024UL * 10240) {
+		g_snprintf(buf, bufsize, "%.2f M", (gdouble)num / (1024UL * 1024));
+	} else if (num < 1024UL * 102400) {
+		g_snprintf(buf, bufsize, "%.1f M", (gdouble)num / (1024UL * 1024));
+	} else if (num < 1024UL * 1024 * 1024) {
+		g_snprintf(buf, bufsize, "%.0f M", (gdouble)num / (1024UL * 1024));
+	} else if (num < 1024UL * 1024 * 10240) {
+		g_snprintf(buf, bufsize, "%.2f G", (gdouble)num / (1024UL * 1024 * 1024));
+	} else if (num < 1024UL * 1024 * 102400) {
+		g_snprintf(buf, bufsize, "%.1f G", (gdouble)num / (1024UL * 1024 * 1024));
+	} else if (num < 1024UL * 1024 * 1024 * 1024) {
+		g_snprintf(buf, bufsize, "%.0f G", (gdouble)num / (1024UL * 1024 * 1024));
+	} else if (num < 1024UL * 1024 * 1024 * 10240) {
+		g_snprintf(buf, bufsize, "%.2f T", (gdouble)num / (1024UL * 1024 * 1024 * 1024));
+	} else if (num < 1024UL * 1024 * 1024 * 102400) {
+		g_snprintf(buf, bufsize, "%.1f T", (gdouble)num / (1024UL * 1024 * 1024 * 1024));
+	} else if (num < 1024UL * 1024 * 1024 * 1024 * 1024) {
+		g_snprintf(buf, bufsize, "%.0f T", (gdouble)num / (1024UL * 1024 * 1024 * 1024));
+	} else if (num < 1024UL * 1024 * 1024 * 1024 * 10240) {
+		g_snprintf(buf, bufsize, "%.2f P", (gdouble)num / (1024UL * 1024 * 1024 * 1024 * 1024));
+	} else if (num < 1024UL * 1024 * 1024 * 1024 * 102400) {
+		g_snprintf(buf, bufsize, "%.1f P", (gdouble)num / (1024UL * 1024 * 1024 * 1024 * 1024));
+	} else if (num < 1024UL * 1024 * 1024 * 1024 * 1024 * 1024) {
+		g_snprintf(buf, bufsize, "%.0f P", (gdouble)num / (1024UL * 1024 * 1024 * 1024 * 1024));
+	}
+	buf[bufsize - 1] = '\0';
+
+	return buf;
 }
 
 XFCE_PANEL_PLUGIN_REGISTER(netgraph_construct);

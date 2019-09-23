@@ -33,6 +33,8 @@ static void netdev_os_read_stats(NetworkDevice *this, DeviceStats* stats);
 
 #ifdef __linux__
 #include "netdev_linux.c"
+#else
+#error "Unsupported operating system.  Please contact the plugin authors."
 #endif
 
 
@@ -77,7 +79,7 @@ void netdev_resize(NetworkDevice *this, gsize oldlen, gsize newlen)
 	}
 }
 
-void netdev_update(NetworkDevice *this, gsize hist_len)
+void netdev_update(NetworkDevice *this, gsize hist_len, guint interval)
 {
 	/* Read the new sample. */
 	DeviceStats stats;
@@ -99,7 +101,7 @@ void netdev_update(NetworkDevice *this, gsize hist_len)
 
 	/* Insert the new sample. */
 	if (stats.rx_bytes >= this->rx_bytes) {
-		this->hist_rx[0] = stats.rx_bytes - this->rx_bytes;
+		this->hist_rx[0] = (stats.rx_bytes - this->rx_bytes) * 1000 / interval;
 	} else {
 		/* The rx_bytes counter is only supposed to go up.  If it went
 		 * down, we assume a wrap-around happened, and the counter
@@ -107,7 +109,7 @@ void netdev_update(NetworkDevice *this, gsize hist_len)
 		this->hist_rx[0] = stats.rx_bytes;
 	}
 	if (stats.tx_bytes >= this->tx_bytes) {
-		this->hist_tx[0] = stats.tx_bytes - this->tx_bytes;
+		this->hist_tx[0] = (stats.tx_bytes - this->tx_bytes) * 1000 / interval;
 	} else {
 		this->hist_tx[0] = stats.tx_bytes;
 	}

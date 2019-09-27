@@ -32,6 +32,8 @@
 #include "dialogs.h"
 #include "netdev.h"
 
+#undef G_LOG_DOMAIN
+#define G_LOG_DOMAIN	"netgraph"
 
 #define DEFAULT_SIZE		32
 #define DEFAULT_UPDATE_INTERVAL	1000  /* milliseconds */
@@ -293,6 +295,7 @@ static void update_netdev_list(NetgraphPlugin *this)
 			j++;
 		} else if (cmp < 0) {
 			/* A new netdev appeared, need to add it to devs. */
+			g_debug("Found new netdev %s.", devname);
 			g_ptr_array_insert(this->devs, j,
 					   netdev_new(devname, this->hist_len));
 			i++;
@@ -321,8 +324,7 @@ static void update_netdev_stats(NetgraphPlugin *this)
 		/* Don't clean up devs if we're monitoring a specific interface. */
 		if (this->devname == NULL) {
 			if (dev->down >= this->hist_len) {
-				/* The device has been down for too long (it no longer
-				 * has data in the history), so we stop tracking it. */
+				g_debug("Removing netdev %s, was down for %d intervals.", dev->name, dev->down);
 				g_ptr_array_remove_index(this->devs, i);
 				i--;
 				continue;

@@ -37,13 +37,13 @@ typedef struct {
 	guint down;  /* Number of updates when the interface was down. */
 
 #ifdef __linux__
-	gchar *state_file;
 	gchar *rx_bytes_file;
 	gchar *tx_bytes_file;
 #endif
 } NetworkDevice;
 
 
+/* Returns the list of network device names that are currently up. */
 GPtrArray *netdev_enumerate(void);
 
 NetworkDevice *netdev_new(gchar *name, gsize hist_len);

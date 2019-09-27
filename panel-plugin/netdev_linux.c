@@ -16,8 +16,8 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-static gboolean device_is_up(NetworkDevice *this);
-static guint64 read_u64_from_file(gchar *filename);
+static gboolean device_is_up(const gchar *devname);
+static guint64 read_u64_from_file(const gchar *filename);
 static int strptrcmp(gconstpointer a, gconstpointer b);
 
 GPtrArray *netdev_enumerate(void)
@@ -31,6 +31,8 @@ GPtrArray *netdev_enumerate(void)
 	while ((file = g_dir_read_name(dir)) != NULL) {
 		if (g_strcmp0(file, "lo") == 0) continue;
 
+		if (!device_is_up(file)) continue;
+
 		g_ptr_array_add(files, g_strdup(file));
 	}
 
@@ -41,36 +43,36 @@ GPtrArray *netdev_enumerate(void)
 
 static void netdev_os_init(NetworkDevice *this)
 {
-	this->state_file = g_strdup_printf("/sys/class/net/%s/operstate", this->name);
 	this->rx_bytes_file = g_strdup_printf("/sys/class/net/%s/statistics/rx_bytes", this->name);
 	this->tx_bytes_file = g_strdup_printf("/sys/class/net/%s/statistics/tx_bytes", this->name);
 }
 
 static void netdev_os_free(NetworkDevice *this)
 {
-	g_free(this->state_file);
 	g_free(this->rx_bytes_file);
 	g_free(this->tx_bytes_file);
 }
 
 static void netdev_os_read_stats(NetworkDevice *this, DeviceStats* stats)
 {
-	stats->is_up = device_is_up(this);
+	stats->is_up = device_is_up(this->name);
 	stats->rx_bytes = read_u64_from_file(this->rx_bytes_file);
 	stats->tx_bytes = read_u64_from_file(this->tx_bytes_file);
 }
 
-static gboolean device_is_up(NetworkDevice *this)
+static gboolean device_is_up(const gchar *devname)
 {
+	g_autofree gchar *state_file = g_strdup_printf("/sys/class/net/%s/operstate", devname);
+
 	g_autofree gchar *contents = NULL;
 	gsize len;
-	if (!g_file_get_contents(this->state_file, &contents, &len, NULL))
+	if (!g_file_get_contents(state_file, &contents, &len, NULL))
 		return FALSE;
 
 	return (g_strcmp0(contents, "up\n") == 0);
 }
 
-static guint64 read_u64_from_file(gchar *filename)
+static guint64 read_u64_from_file(const gchar *filename)
 {
 	g_autofree gchar *contents = NULL;
 	gsize len;

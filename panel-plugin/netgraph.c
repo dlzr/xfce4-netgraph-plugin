@@ -265,7 +265,7 @@ static void on_orientation_changed(XfcePanelPlugin *plugin,
 				   GtkOrientation orientation,
 				   NetgraphPlugin *this)
 {
-	// TODO
+	on_size_changed(this->plugin, xfce_panel_plugin_get_size(this->plugin), this);
 }
 
 static gboolean on_update(NetgraphPlugin *this)

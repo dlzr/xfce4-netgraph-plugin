@@ -124,20 +124,23 @@ static void netgraph_free(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 
 static void netgraph_load(NetgraphPlugin *this)
 {
+	guint size = DEFAULT_SIZE;
+	guint update_interval = DEFAULT_UPDATE_INTERVAL;
+	g_autoptr(XfceRc) rc = NULL;
+
 	g_autofree gchar *file =
 		xfce_panel_plugin_lookup_rc_file(this->plugin);
-	if (!file) return;
+	if (!file) goto apply;
 
-	g_autoptr(XfceRc) rc = xfce_rc_simple_open(file, TRUE);
-	if (!rc) return;
+	rc = xfce_rc_simple_open(file, TRUE);
+	if (!rc) goto apply;
 
-	guint size = xfce_rc_read_int_entry(rc, "size", DEFAULT_SIZE);
+	size = xfce_rc_read_int_entry(rc, "size", DEFAULT_SIZE);
+	update_interval = xfce_rc_read_int_entry(rc, "update_interval", DEFAULT_UPDATE_INTERVAL);
+
+apply:
 	netgraph_set_size(this, size);
-
-	/* The update_interval setting must be processed last,
-	 * as it starts the update timer. */
-	guint update_interval = xfce_rc_read_int_entry(
-		rc, "update_interval", DEFAULT_UPDATE_INTERVAL);
+	/* This must be called last, as it starts the update timer. */
 	netgraph_set_update_interval(this, update_interval);
 }
 

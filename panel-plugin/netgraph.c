@@ -84,9 +84,6 @@ static NetgraphPlugin *netgraph_new(XfcePanelPlugin *plugin)
 	NetgraphPlugin *this = g_slice_new0(NetgraphPlugin);
 	this->plugin = plugin;
 
-	this->size = DEFAULT_SIZE;
-	this->update_interval = DEFAULT_UPDATE_INTERVAL;
-
 	this->ebox = gtk_event_box_new();
 	gtk_event_box_set_visible_window(GTK_EVENT_BOX(this->ebox), FALSE);
 	gtk_event_box_set_above_child(GTK_EVENT_BOX(this->ebox), TRUE);
@@ -94,11 +91,9 @@ static NetgraphPlugin *netgraph_new(XfcePanelPlugin *plugin)
 
 	GtkOrientation orientation = xfce_panel_plugin_get_orientation(plugin);
 	this->box = gtk_box_new(orientation, 0);
-	gtk_container_set_border_width(GTK_CONTAINER(this->box), 2);
 	gtk_container_add(GTK_CONTAINER(this->ebox), this->box);
 
 	this->frame = gtk_frame_new(NULL);
-	gtk_frame_set_shadow_type(GTK_FRAME(this->frame), this->has_frame ? GTK_SHADOW_IN : GTK_SHADOW_NONE);
 	gtk_box_pack_end(GTK_BOX(this->box), this->frame, TRUE, TRUE, 0);
 
 	this->draw_area = gtk_drawing_area_new();
@@ -303,6 +298,9 @@ static gboolean on_size_changed(XfcePanelPlugin *plugin,
 		}
 	}
 	this->hist_len = width;
+
+	/* Update the border since it depends on the plugin size. */
+	netgraph_set_has_border(this, this->has_border);
 
 	return TRUE;
 }

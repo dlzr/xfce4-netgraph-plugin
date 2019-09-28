@@ -35,8 +35,10 @@
 #undef G_LOG_DOMAIN
 #define G_LOG_DOMAIN	"netgraph"
 
-#define DEFAULT_SIZE		32
 #define DEFAULT_UPDATE_INTERVAL	1000  /* milliseconds */
+#define DEFAULT_SIZE		32
+#define DEFAULT_HAS_FRAME	TRUE
+#define DEFAULT_HAS_BORDER	FALSE
 
 
 static void netgraph_construct(XfcePanelPlugin *plugin);
@@ -109,25 +111,23 @@ static NetgraphPlugin *netgraph_new(XfcePanelPlugin *plugin)
 
 static void netgraph_free(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 {
-	/* Destroy the configuration dialog if it's still open. */
-	GtkWidget *dialog = g_object_get_data(G_OBJECT(plugin), "dialog");
-	if (dialog) gtk_widget_destroy(dialog);
-
 	if (this->timeout_id) g_source_remove(this->timeout_id);
 
 	gtk_widget_destroy(this->ebox);
 
 	g_ptr_array_free(this->devs, TRUE);
 
-	g_free(this->devname);
+	g_free(this->devnames);
 
 	g_slice_free(NetgraphPlugin, this);
 }
 
 static void netgraph_load(NetgraphPlugin *this)
 {
-	guint size = DEFAULT_SIZE;
 	guint update_interval = DEFAULT_UPDATE_INTERVAL;
+	guint size = DEFAULT_SIZE;
+	gboolean has_frame = DEFAULT_HAS_FRAME;
+	gboolean has_border = DEFAULT_HAS_BORDER;
 	g_autoptr(XfceRc) rc = NULL;
 
 	g_autofree gchar *file =
@@ -137,11 +137,16 @@ static void netgraph_load(NetgraphPlugin *this)
 	rc = xfce_rc_simple_open(file, TRUE);
 	if (!rc) goto apply;
 
-	size = xfce_rc_read_int_entry(rc, "size", DEFAULT_SIZE);
 	update_interval = xfce_rc_read_int_entry(rc, "update_interval", DEFAULT_UPDATE_INTERVAL);
+	size = xfce_rc_read_int_entry(rc, "size", DEFAULT_SIZE);
+	has_frame = !!xfce_rc_read_int_entry(rc, "has_frame", DEFAULT_HAS_FRAME);
+	has_border = !!xfce_rc_read_int_entry(rc, "has_border", DEFAULT_HAS_BORDER);
 
 apply:
 	netgraph_set_size(this, size);
+	netgraph_set_has_frame(this, has_frame);
+	netgraph_set_has_border(this, has_border);
+
 	/* This must be called last, as it starts the update timer. */
 	netgraph_set_update_interval(this, update_interval);
 }
@@ -155,14 +160,10 @@ void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 	g_autoptr(XfceRc) rc = xfce_rc_simple_open(file, FALSE);
 	if (!rc) return;
 
-	xfce_rc_write_int_entry (rc, "size", this->size);
 	xfce_rc_write_int_entry (rc, "update_interval", this->update_interval);
-}
-
-void netgraph_set_size(NetgraphPlugin *this, guint size)
-{
-	this->size = size;
-	on_size_changed(this->plugin, xfce_panel_plugin_get_size(this->plugin), this);
+	xfce_rc_write_int_entry (rc, "size", this->size);
+	xfce_rc_write_int_entry (rc, "has_frame", !!this->has_frame);
+	xfce_rc_write_int_entry (rc, "has_border", !!this->has_border);
 }
 
 void netgraph_set_update_interval(NetgraphPlugin *this, guint update_interval)
@@ -171,6 +172,30 @@ void netgraph_set_update_interval(NetgraphPlugin *this, guint update_interval)
 
 	if (this->timeout_id) g_source_remove(this->timeout_id);
 	this->timeout_id = g_timeout_add(this->update_interval, (GSourceFunc)on_update, this);
+}
+
+void netgraph_set_size(NetgraphPlugin *this, guint size)
+{
+	this->size = size;
+	on_size_changed(this->plugin, xfce_panel_plugin_get_size(this->plugin), this);
+}
+
+void netgraph_set_has_frame(NetgraphPlugin *this, gboolean has_frame)
+{
+	this->has_frame = has_frame;
+	gtk_frame_set_shadow_type(GTK_FRAME(this->frame),
+		this->has_frame ? GTK_SHADOW_IN : GTK_SHADOW_NONE);
+}
+
+void netgraph_set_has_border(NetgraphPlugin *this, gboolean has_border)
+{
+	this->has_border = has_border;
+
+	int border_width = 2;
+	if (xfce_panel_plugin_get_size(this->plugin) <= 26) border_width = 1;
+	if (!this->has_border) border_width = 0;
+
+	gtk_container_set_border_width(GTK_CONTAINER(this->box), border_width);
 }
 
 static void on_draw(GtkWidget *widget, cairo_t *cr, NetgraphPlugin *this)
@@ -270,7 +295,7 @@ static void on_orientation_changed(XfcePanelPlugin *plugin,
 
 static gboolean on_update(NetgraphPlugin *this)
 {
-	if (this->devname == NULL) update_netdev_list(this);
+	if (this->devnames == NULL) update_netdev_list(this);
 
 	update_netdev_stats(this);
 	update_tooltip(this);
@@ -321,8 +346,8 @@ static void update_netdev_stats(NetgraphPlugin *this)
 		NetworkDevice *dev = g_ptr_array_index(this->devs, i);
 		netdev_update(dev, this->hist_len, this->update_interval);
 
-		/* Don't clean up devs if we're monitoring a specific interface. */
-		if (this->devname == NULL) {
+		/* Don't clean up devs if we're monitoring specific interfaces. */
+		if (this->devnames == NULL) {
 			if (dev->down >= this->hist_len) {
 				g_debug("Removing netdev %s, was down for %d intervals.", dev->name, dev->down);
 				g_ptr_array_remove_index(this->devs, i);
@@ -356,7 +381,7 @@ static void update_tooltip(NetgraphPlugin *this)
 	format_human_size(this->scale, rx_buf, BUFSIZE);
 	g_string_append_printf(label, "current scale: %sB/s", rx_buf);
 
-	gtk_widget_set_tooltip_markup(GTK_WIDGET(this->box), label->str);
+	gtk_widget_set_tooltip_markup(this->box, label->str);
 #undef BUFSIZE
 }
 

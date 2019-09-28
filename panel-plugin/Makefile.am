@@ -13,7 +13,11 @@ plugin_LTLIBRARIES = \
 plugindir = \
 	$(libdir)/xfce4/panel/plugins
 
+libnetgraph_built_sources = \
+	prefs-dialog.glade.h
+
 libnetgraph_la_SOURCES = \
+	 $(libnetgraph_built_sources) \
 	dialogs.c \
 	dialogs.h \
 	netdev.c \
@@ -42,18 +46,23 @@ libnetgraph_la_LIBADD = \
 #
 # Desktop file
 #
-desktopdir =								\
-	$(datadir)/xfce4/panel/plugins
+desktopdir = $(datadir)/xfce4/panel/plugins
 
-desktop_DATA =								\
-	netgraph.desktop
+desktop_DATA = netgraph.desktop
 
 @INTLTOOL_DESKTOP_RULE@
 
-EXTRA_DIST =								\
-	netgraph.desktop.in
+EXTRA_DIST = netgraph.desktop.in
 
-CLEANFILES =								\
-	$(desktop_DATA)
+DISTCLEANFILES = $(desktop_DATA)
+
+if MAINTAINER_MODE
+BUILT_SOURCES = $(libnetgraph_built_sources)
+
+DISTCLEANFILES += $(libnetgraph_built_sources)
+
+prefs-dialog.glade.h: prefs-dialog.glade
+	$(AM_V_GEN) xdt-csource --static --strip-comments --strip-content --name=prefs_dialog_glade $< >$@
+endif
 
 # vi:set ts=8 sw=8 noet ai nocindent syntax=automake:

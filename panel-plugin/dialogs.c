@@ -29,61 +29,123 @@
 #include <libxfce4panel/xfce-panel-plugin.h>
 
 #include "netgraph.h"
+#include "prefs-dialog.glade.h"
 
 #define PLUGIN_WEBSITE "https://TODO"
 
 
-static void netgraph_configure_response(GtkWidget *dialog,
-					gint response,
-					NetgraphPlugin *netgraph)
+#undef G_LOG_DOMAIN
+#define G_LOG_DOMAIN	"netgraph"
+
+/* Hook to make sure GtkBuilder knows are the XfceTitledDialog object */
+#define PANEL_UTILS_LINK_4UI \
+  if (xfce_titled_dialog_get_type () == 0) \
+    return;
+
+
+static void netgraph_configure_response(GtkWidget *dialog, gint response, NetgraphPlugin *netgraph);
+static void on_update_interval_changed(GtkWidget *widget, NetgraphPlugin *this);
+static void on_size_changed(GtkWidget *widget, NetgraphPlugin *this);
+static void on_has_frame_changed(GtkWidget *widget, NetgraphPlugin *this);
+static void on_has_border_changed(GtkWidget *widget, NetgraphPlugin *this);
+
+
+void netgraph_configure(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 {
-	gboolean result;
+	g_autoptr(GError) err = NULL;
+	g_autoptr(GtkBuilder) builder = gtk_builder_new();
 
-	if (response == GTK_RESPONSE_HELP) {
-		/* Show help. */
-		result = g_spawn_command_line_async("exo-open --launch WebBrowser " PLUGIN_WEBSITE, NULL);
-
-		if (result == FALSE) {
-			g_warning(_("Unable to open the following url: %s"), PLUGIN_WEBSITE);
-		}
-	} else {
-		/* Remove the dialog data from the plugin. */
-		g_object_set_data(G_OBJECT(netgraph->plugin), "dialog", NULL);
-
-		/* Unlock the panel menu. */
-		xfce_panel_plugin_unblock_menu(netgraph->plugin);
-
-		/* Save the plugin. */
-		netgraph_save(netgraph->plugin, netgraph);
-
-		/* Destroy the properties dialog. */
-		gtk_widget_destroy(dialog);
+	PANEL_UTILS_LINK_4UI
+	if (!gtk_builder_add_from_string(builder,
+			prefs_dialog_glade, prefs_dialog_glade_length, &err)) {
+		g_error("Could not construct preferences dialog: %s.", err->message);
+		return;
 	}
-}
 
-void netgraph_configure(XfcePanelPlugin *plugin, NetgraphPlugin *netgraph)
-{
-	/* Block the plugin menu. */
+	GObject *dialog = gtk_builder_get_object(builder, "dialog");
+	if (!dialog) {
+		g_error("Invalid preferences dialog.");
+		return;
+	}
+
+	xfce_panel_plugin_take_window(plugin, GTK_WINDOW(dialog));
+
+#pragma GCC diagnostic push
+	/* GCC complains about the (GWeakNotify) cast, but in this case it's fine. */
+#pragma GCC diagnostic ignored "-Wcast-function-type"
 	xfce_panel_plugin_block_menu(plugin);
+	g_object_weak_ref(dialog, (GWeakNotify)xfce_panel_plugin_unblock_menu, plugin);
+#pragma GCC diagnostic pop
 
-	/* Create the dialog. */
-	GtkWidget *dialog = xfce_titled_dialog_new_with_buttons(
-			_("netgraph Plugin"),
-			GTK_WINDOW(gtk_widget_get_toplevel(GTK_WIDGET(plugin))),
-			GTK_DIALOG_DESTROY_WITH_PARENT,
-			"gtk-help", GTK_RESPONSE_HELP,
-			"gtk-close", GTK_RESPONSE_OK,
-			NULL);
-
-	/* Link the dialog to the plugin, so we can destroy it when the plugin
-	 * is closed, but the dialog is still open. */
-	g_object_set_data(G_OBJECT(plugin), "dialog", dialog);
+	GObject *button = gtk_builder_get_object(builder, "close-button");
+	if (button) {
+		g_signal_connect_swapped(button, "clicked",
+			G_CALLBACK(gtk_widget_destroy), dialog);
+	}
+	g_signal_connect(dialog, "response",
+		G_CALLBACK(netgraph_configure_response), this);
 
 	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
-	gtk_window_set_icon_name(GTK_WINDOW(dialog), "xfce4-netgraph");
-	g_signal_connect(G_OBJECT(dialog), "response",
-			 G_CALLBACK(netgraph_configure_response), netgraph);
-	gtk_widget_show(dialog);
+	gtk_window_set_icon_name(GTK_WINDOW(dialog), "xfce4-netgraph-plugin");
+
+	/* Populate the dialog and connect the change handlers. */
+	GObject *object = gtk_builder_get_object(builder, "update-interval");
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(object), this->update_interval);
+	g_signal_connect(object, "value-changed",
+		G_CALLBACK(on_update_interval_changed), this);
+
+	GtkOrientation orientation = xfce_panel_plugin_get_orientation(plugin);
+	if (orientation == GTK_ORIENTATION_VERTICAL) {
+		object = gtk_builder_get_object(builder, "size-label");
+		gtk_label_set_text(GTK_LABEL(object), _("Height (px):"));
+	}
+
+	object = gtk_builder_get_object(builder, "size");
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(object), this->size);
+	g_signal_connect(object, "value-changed", G_CALLBACK(on_size_changed), this);
+
+	object = gtk_builder_get_object(builder, "has-frame");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(object), this->has_frame);
+	g_signal_connect(object, "toggled", G_CALLBACK(on_has_frame_changed), this);
+
+	object = gtk_builder_get_object(builder, "has-border");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(object), this->has_border);
+	g_signal_connect(object, "toggled", G_CALLBACK(on_has_border_changed), this);
+
+	// TODO ...
+
+	gtk_widget_show(GTK_WIDGET(dialog));
+}
+
+static void netgraph_configure_response(GtkWidget *dialog,
+					gint response,
+					NetgraphPlugin *this)
+{
+	netgraph_save(this->plugin, this);
+}
+
+static void on_update_interval_changed(GtkWidget *widget, NetgraphPlugin *this)
+{
+	netgraph_set_update_interval(
+		this, gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget)));
+}
+
+static void on_size_changed(GtkWidget *widget, NetgraphPlugin *this)
+{
+	netgraph_set_size(
+		this, gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget)));
+}
+
+static void on_has_frame_changed(GtkWidget *widget, NetgraphPlugin *this)
+{
+	netgraph_set_has_frame(
+		this, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+}
+
+static void on_has_border_changed(GtkWidget *widget, NetgraphPlugin *this)
+{
+	netgraph_set_has_border(
+		this, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
 }
 
 void netgraph_about(XfcePanelPlugin *plugin)
@@ -107,7 +169,5 @@ void netgraph_about(XfcePanelPlugin *plugin)
 			"authors",      auth,
 			NULL);
 
-	if (icon) {
-		g_object_unref(G_OBJECT(icon));
-	}
+	g_object_unref(G_OBJECT(icon));
 }

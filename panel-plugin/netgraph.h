@@ -30,11 +30,15 @@ G_BEGIN_DECLS
 typedef struct {
 	XfcePanelPlugin *plugin;
 
-	guint size;
 	guint update_interval;
-	gchar *devname;  /* NULL when monitoring all interfaces. */
+	guint size;
 	gboolean has_frame;
 	gboolean has_border;
+	GdkRGBA bg_color;
+	GdkRGBA rx_color;
+	GdkRGBA tx_color;
+	guint64 min_scale;
+	gchar *devnames;  /* NULL when monitoring all interfaces. */
 
 	GtkWidget *ebox;
 	GtkWidget *box;
@@ -49,8 +53,11 @@ typedef struct {
 
 void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this);
 
-void netgraph_set_size(NetgraphPlugin *this, guint size);
 void netgraph_set_update_interval(NetgraphPlugin *this, guint update_interval);
+void netgraph_set_size(NetgraphPlugin *this, guint size);
+void netgraph_set_has_frame(NetgraphPlugin *this, gboolean has_frame);
+void netgraph_set_has_border(NetgraphPlugin *this, gboolean has_border);
+
 
 /* TODO: This should be moved to xfce-rc.h */
 #if GLIB_CHECK_VERSION(2, 44, 0)

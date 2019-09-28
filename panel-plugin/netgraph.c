@@ -39,6 +39,9 @@
 #define DEFAULT_SIZE		32
 #define DEFAULT_HAS_FRAME	TRUE
 #define DEFAULT_HAS_BORDER	FALSE
+#define DEFAULT_BG_COLOR	"rgba(0,0,0,0)"
+#define DEFAULT_RX_COLOR	"rgb(16,80,73)"
+#define DEFAULT_TX_COLOR	"rgb(170,83,8)"
 
 
 static void netgraph_construct(XfcePanelPlugin *plugin);
@@ -128,6 +131,10 @@ static void netgraph_load(NetgraphPlugin *this)
 	guint size = DEFAULT_SIZE;
 	gboolean has_frame = DEFAULT_HAS_FRAME;
 	gboolean has_border = DEFAULT_HAS_BORDER;
+	const gchar *bg_color = DEFAULT_BG_COLOR;
+	const gchar *rx_color = DEFAULT_RX_COLOR;
+	const gchar *tx_color = DEFAULT_TX_COLOR;
+
 	g_autoptr(XfceRc) rc = NULL;
 
 	g_autofree gchar *file =
@@ -141,11 +148,17 @@ static void netgraph_load(NetgraphPlugin *this)
 	size = xfce_rc_read_int_entry(rc, "size", DEFAULT_SIZE);
 	has_frame = !!xfce_rc_read_int_entry(rc, "has_frame", DEFAULT_HAS_FRAME);
 	has_border = !!xfce_rc_read_int_entry(rc, "has_border", DEFAULT_HAS_BORDER);
+	bg_color = xfce_rc_read_entry(rc, "bg_color", DEFAULT_BG_COLOR);
+	rx_color = xfce_rc_read_entry(rc, "rx_color", DEFAULT_RX_COLOR);
+	tx_color = xfce_rc_read_entry(rc, "tx_color", DEFAULT_TX_COLOR);
 
 apply:
 	netgraph_set_size(this, size);
 	netgraph_set_has_frame(this, has_frame);
 	netgraph_set_has_border(this, has_border);
+	gdk_rgba_parse(&this->bg_color, bg_color);
+	gdk_rgba_parse(&this->rx_color, rx_color);
+	gdk_rgba_parse(&this->tx_color, tx_color);
 
 	/* This must be called last, as it starts the update timer. */
 	netgraph_set_update_interval(this, update_interval);
@@ -160,10 +173,17 @@ void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 	g_autoptr(XfceRc) rc = xfce_rc_simple_open(file, FALSE);
 	if (!rc) return;
 
-	xfce_rc_write_int_entry (rc, "update_interval", this->update_interval);
-	xfce_rc_write_int_entry (rc, "size", this->size);
-	xfce_rc_write_int_entry (rc, "has_frame", !!this->has_frame);
-	xfce_rc_write_int_entry (rc, "has_border", !!this->has_border);
+	xfce_rc_write_int_entry(rc, "update_interval", this->update_interval);
+	xfce_rc_write_int_entry(rc, "size", this->size);
+	xfce_rc_write_int_entry(rc, "has_frame", !!this->has_frame);
+	xfce_rc_write_int_entry(rc, "has_border", !!this->has_border);
+
+	g_autofree gchar *bg_color = gdk_rgba_to_string(&this->bg_color);
+	xfce_rc_write_entry(rc, "bg_color", bg_color);
+	g_autofree gchar *rx_color = gdk_rgba_to_string(&this->rx_color);
+	xfce_rc_write_entry(rc, "rx_color", rx_color);
+	g_autofree gchar *tx_color = gdk_rgba_to_string(&this->tx_color);
+	xfce_rc_write_entry(rc, "tx_color", tx_color);
 }
 
 void netgraph_set_update_interval(NetgraphPlugin *this, guint update_interval)
@@ -198,6 +218,11 @@ void netgraph_set_has_border(NetgraphPlugin *this, gboolean has_border)
 	gtk_container_set_border_width(GTK_CONTAINER(this->box), border_width);
 }
 
+void netgraph_redraw(NetgraphPlugin *this)
+{
+	gtk_widget_queue_draw(this->draw_area);
+}
+
 static void on_draw(GtkWidget *widget, cairo_t *cr, NetgraphPlugin *this)
 {
 	GtkAllocation alloc;
@@ -207,17 +232,14 @@ static void on_draw(GtkWidget *widget, cairo_t *cr, NetgraphPlugin *this)
 
 	if (w > this->hist_len) w = this->hist_len;
 
-	GdkRGBA color;
-	gdk_rgba_parse(&color, "#884444");
-	gdk_cairo_set_source_rgba(cr, &color);
+	gdk_cairo_set_source_rgba(cr, &this->bg_color);
 	cairo_rectangle(cr, 0, 0, w, h);
 	cairo_fill(cr);
 
 	cairo_set_line_width(cr, 1.0);
 	cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
 
-	gdk_rgba_parse(&color, "#00ff00");
-	gdk_cairo_set_source_rgba(cr, &color);
+	gdk_cairo_set_source_rgba(cr, &this->rx_color);
 	for (guint x = 0; x < w; x++) {
 		guint seg = (guint)(h * get_rx_fraction(this, w - 1 - x));
 		if (!seg) continue;
@@ -227,8 +249,7 @@ static void on_draw(GtkWidget *widget, cairo_t *cr, NetgraphPlugin *this)
 		cairo_stroke(cr);
 	}
 
-	gdk_rgba_parse(&color, "#ffff00");
-	gdk_cairo_set_source_rgba(cr, &color);
+	gdk_cairo_set_source_rgba(cr, &this->tx_color);
 	for (guint x = 0; x < w; x++) {
 		guint seg = (guint)(h * get_tx_fraction(this, w - 1 - x));
 		if (!seg) continue;
@@ -299,7 +320,7 @@ static gboolean on_update(NetgraphPlugin *this)
 
 	update_netdev_stats(this);
 	update_tooltip(this);
-	gtk_widget_queue_draw(this->draw_area);
+	netgraph_redraw(this);
 
 	return TRUE;  /* Keep the timeout active. */
 }

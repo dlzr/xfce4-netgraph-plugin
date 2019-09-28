@@ -37,10 +37,9 @@
 #undef G_LOG_DOMAIN
 #define G_LOG_DOMAIN	"netgraph"
 
-/* Hook to make sure GtkBuilder knows are the XfceTitledDialog object */
+/* Hook to make sure GtkBuilder knows about the XfceTitledDialog object. */
 #define PANEL_UTILS_LINK_4UI \
-  if (xfce_titled_dialog_get_type () == 0) \
-    return;
+  if (xfce_titled_dialog_get_type () == 0) return;
 
 
 static void netgraph_configure_response(GtkWidget *dialog, gint response, NetgraphPlugin *netgraph);
@@ -48,6 +47,9 @@ static void on_update_interval_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_size_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_has_frame_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_has_border_changed(GtkWidget *widget, NetgraphPlugin *this);
+static void on_bg_color_changed(GtkWidget *widget, NetgraphPlugin *this);
+static void on_rx_color_changed(GtkWidget *widget, NetgraphPlugin *this);
+static void on_tx_color_changed(GtkWidget *widget, NetgraphPlugin *this);
 
 
 void netgraph_configure(XfcePanelPlugin *plugin, NetgraphPlugin *this)
@@ -112,6 +114,18 @@ void netgraph_configure(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(object), this->has_border);
 	g_signal_connect(object, "toggled", G_CALLBACK(on_has_border_changed), this);
 
+	object = gtk_builder_get_object(builder, "bg-color");
+	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(object), &this->bg_color);
+	g_signal_connect(object, "color-set", G_CALLBACK(on_bg_color_changed), this);
+
+	object = gtk_builder_get_object(builder, "rx-color");
+	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(object), &this->rx_color);
+	g_signal_connect(object, "color-set", G_CALLBACK(on_rx_color_changed), this);
+
+	object = gtk_builder_get_object(builder, "tx-color");
+	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(object), &this->tx_color);
+	g_signal_connect(object, "color-set", G_CALLBACK(on_tx_color_changed), this);
+
 	// TODO ...
 
 	gtk_widget_show(GTK_WIDGET(dialog));
@@ -146,6 +160,24 @@ static void on_has_border_changed(GtkWidget *widget, NetgraphPlugin *this)
 {
 	netgraph_set_has_border(
 		this, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+}
+
+static void on_bg_color_changed(GtkWidget *widget, NetgraphPlugin *this)
+{
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(widget), &this->bg_color);
+	netgraph_redraw(this);
+}
+
+static void on_rx_color_changed(GtkWidget *widget, NetgraphPlugin *this)
+{
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(widget), &this->rx_color);
+	netgraph_redraw(this);
+}
+
+static void on_tx_color_changed(GtkWidget *widget, NetgraphPlugin *this)
+{
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(widget), &this->tx_color);
+	netgraph_redraw(this);
 }
 
 void netgraph_about(XfcePanelPlugin *plugin)

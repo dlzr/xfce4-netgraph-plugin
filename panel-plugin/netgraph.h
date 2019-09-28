@@ -51,6 +51,7 @@ typedef struct {
 	guint64 scale;
 } NetgraphPlugin;
 
+void netgraph_redraw(NetgraphPlugin *this);
 void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this);
 
 void netgraph_set_update_interval(NetgraphPlugin *this, guint update_interval);

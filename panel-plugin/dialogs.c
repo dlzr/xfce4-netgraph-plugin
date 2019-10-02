@@ -31,8 +31,8 @@
 #include "netgraph.h"
 #include "prefs-dialog.glade.h"
 
-#define PLUGIN_WEBSITE "https://TODO"
 
+#define PLUGIN_WEBSITE "https://TODO"
 
 #undef G_LOG_DOMAIN
 #define G_LOG_DOMAIN	"netgraph"
@@ -41,15 +41,21 @@
 #define PANEL_UTILS_LINK_4UI \
   if (xfce_titled_dialog_get_type () == 0) return;
 
+#define EDIT_TIMEOUT	1000	/* milliseconds */
+
 
 static void netgraph_configure_response(GtkWidget *dialog, gint response, NetgraphPlugin *netgraph);
-static void on_update_interval_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_size_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_has_frame_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_has_border_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_bg_color_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_rx_color_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_tx_color_changed(GtkWidget *widget, NetgraphPlugin *this);
+static void on_update_interval_changed(GtkWidget *widget, NetgraphPlugin *this);
+static void on_min_scale_changed(GtkWidget *widget, NetgraphPlugin *this);
+static void on_monitor_devs_changed(GtkWidget *widget, NetgraphPlugin *this);
+static void on_dev_names_changed(GtkWidget *widget, NetgraphPlugin *this);
+static gboolean on_dev_names_timeout(NetgraphPlugin *this);
 
 
 void netgraph_configure(XfcePanelPlugin *plugin, NetgraphPlugin *this)
@@ -91,10 +97,7 @@ void netgraph_configure(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 	gtk_window_set_icon_name(GTK_WINDOW(dialog), "xfce4-netgraph-plugin");
 
 	/* Populate the dialog and connect the change handlers. */
-	GObject *object = gtk_builder_get_object(builder, "update-interval");
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(object), this->update_interval);
-	g_signal_connect(object, "value-changed",
-		G_CALLBACK(on_update_interval_changed), this);
+	GObject *object = NULL;
 
 	GtkOrientation orientation = xfce_panel_plugin_get_orientation(plugin);
 	if (orientation == GTK_ORIENTATION_VERTICAL) {
@@ -126,7 +129,24 @@ void netgraph_configure(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(object), &this->tx_color);
 	g_signal_connect(object, "color-set", G_CALLBACK(on_tx_color_changed), this);
 
-	// TODO ...
+	object = gtk_builder_get_object(builder, "update-interval");
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(object), this->update_interval);
+	g_signal_connect(object, "value-changed",
+		G_CALLBACK(on_update_interval_changed), this);
+
+	object = gtk_builder_get_object(builder, "min-scale");
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(object), this->min_scale / 1024);
+	g_signal_connect(object, "value-changed",
+		G_CALLBACK(on_min_scale_changed), this);
+
+	this->dev_names_entry = gtk_builder_get_object(builder, "dev-names");
+	object = gtk_builder_get_object(builder, "monitor-devs");
+	gtk_combo_box_set_active(GTK_COMBO_BOX(object), (this->dev_names != NULL));
+	g_signal_connect(object, "changed", G_CALLBACK(on_monitor_devs_changed), this);
+
+	on_monitor_devs_changed(GTK_WIDGET(object), this);
+	g_signal_connect(this->dev_names_entry, "changed",
+		G_CALLBACK(on_dev_names_changed), this);
 
 	gtk_widget_show(GTK_WIDGET(dialog));
 }
@@ -135,13 +155,15 @@ static void netgraph_configure_response(GtkWidget *dialog,
 					gint response,
 					NetgraphPlugin *this)
 {
-	netgraph_save(this->plugin, this);
-}
+	if (this->dev_names_timeout_id) {
+		/* The user closed the prefs dialog before the changes to
+		 * dev_names were applied. */
+		g_source_remove(this->dev_names_timeout_id);
+		on_dev_names_timeout(this);
+		this->dev_names_entry = NULL;
+	}
 
-static void on_update_interval_changed(GtkWidget *widget, NetgraphPlugin *this)
-{
-	netgraph_set_update_interval(
-		this, gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget)));
+	netgraph_save(this->plugin, this);
 }
 
 static void on_size_changed(GtkWidget *widget, NetgraphPlugin *this)
@@ -178,6 +200,49 @@ static void on_tx_color_changed(GtkWidget *widget, NetgraphPlugin *this)
 {
 	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(widget), &this->tx_color);
 	netgraph_redraw(this);
+}
+
+static void on_update_interval_changed(GtkWidget *widget, NetgraphPlugin *this)
+{
+	netgraph_set_update_interval(
+		this, gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget)));
+}
+
+static void on_min_scale_changed(GtkWidget *widget, NetgraphPlugin *this)
+{
+	netgraph_set_min_scale(
+		this, gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget)) * 1024);
+}
+
+static void on_monitor_devs_changed(GtkWidget *widget, NetgraphPlugin *this)
+{
+	if (gtk_combo_box_get_active(GTK_COMBO_BOX(widget))) {
+		if (this->dev_names) {
+			gtk_entry_set_text(GTK_ENTRY(this->dev_names_entry), this->dev_names);
+		} else {
+			gtk_entry_set_text(GTK_ENTRY(this->dev_names_entry), "");
+		}
+		gtk_widget_show(GTK_WIDGET(this->dev_names_entry));
+	} else {
+		gtk_widget_hide(GTK_WIDGET(this->dev_names_entry));
+		netgraph_set_dev_names(this, NULL);
+	}
+}
+
+static void on_dev_names_changed(GtkWidget *widget, NetgraphPlugin *this)
+{
+	if (this->dev_names_timeout_id) g_source_remove(this->dev_names_timeout_id);
+	this->dev_names_timeout_id = g_timeout_add(EDIT_TIMEOUT,
+		(GSourceFunc)on_dev_names_timeout, this);
+}
+
+static gboolean on_dev_names_timeout(NetgraphPlugin *this)
+{
+	this->dev_names_timeout_id = 0;
+
+	netgraph_set_dev_names(this, gtk_entry_get_text(GTK_ENTRY(this->dev_names_entry)));
+
+	return FALSE;  /* Do not reactivate the timeout. */
 }
 
 void netgraph_about(XfcePanelPlugin *plugin)

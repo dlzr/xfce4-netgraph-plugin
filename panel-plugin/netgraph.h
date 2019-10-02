@@ -30,21 +30,24 @@ G_BEGIN_DECLS
 typedef struct {
 	XfcePanelPlugin *plugin;
 
-	guint update_interval;
 	guint size;
 	gboolean has_frame;
 	gboolean has_border;
 	GdkRGBA bg_color;
 	GdkRGBA rx_color;
 	GdkRGBA tx_color;
+	guint update_interval;
 	guint64 min_scale;
-	gchar *devnames;  /* NULL when monitoring all interfaces. */
+	gchar *dev_names;  /* NULL when monitoring all interfaces. */
 
 	GtkWidget *ebox;
 	GtkWidget *box;
 	GtkWidget *frame;
 	GtkWidget *draw_area;
 	guint timeout_id;
+
+	GObject *dev_names_entry;
+	guint dev_names_timeout_id;
 
 	GPtrArray *devs;
 	gsize hist_len;
@@ -54,10 +57,12 @@ typedef struct {
 void netgraph_redraw(NetgraphPlugin *this);
 void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this);
 
-void netgraph_set_update_interval(NetgraphPlugin *this, guint update_interval);
 void netgraph_set_size(NetgraphPlugin *this, guint size);
 void netgraph_set_has_frame(NetgraphPlugin *this, gboolean has_frame);
 void netgraph_set_has_border(NetgraphPlugin *this, gboolean has_border);
+void netgraph_set_update_interval(NetgraphPlugin *this, guint update_interval);
+void netgraph_set_min_scale(NetgraphPlugin *this, guint64 min_scale);
+void netgraph_set_dev_names(NetgraphPlugin *this, const gchar *dev_names);
 
 
 /* TODO: This should be moved to xfce-rc.h */

@@ -35,13 +35,14 @@
 #undef G_LOG_DOMAIN
 #define G_LOG_DOMAIN	"netgraph"
 
-#define DEFAULT_UPDATE_INTERVAL	1000  /* milliseconds */
-#define DEFAULT_SIZE		32
+#define DEFAULT_SIZE		32	/* pixels */
 #define DEFAULT_HAS_FRAME	TRUE
 #define DEFAULT_HAS_BORDER	FALSE
 #define DEFAULT_BG_COLOR	"rgba(0,0,0,0)"
 #define DEFAULT_RX_COLOR	"rgb(16,80,73)"
 #define DEFAULT_TX_COLOR	"rgb(170,83,8)"
+#define DEFAULT_UPDATE_INTERVAL	1000	/* milliseconds */
+#define DEFAULT_MIN_SCALE	5120	/* bytes/second */
 
 
 static void netgraph_construct(XfcePanelPlugin *plugin);
@@ -106,6 +107,7 @@ static NetgraphPlugin *netgraph_new(XfcePanelPlugin *plugin)
 	netgraph_set_size(this, this->size);
 	netgraph_set_has_frame(this, this->has_frame);
 	netgraph_set_has_border(this, this->has_border);
+	netgraph_set_dev_names(this, this->dev_names);
 
 	gtk_widget_show_all(this->ebox);
 
@@ -123,20 +125,23 @@ static void netgraph_free(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 
 	g_ptr_array_free(this->devs, TRUE);
 
-	g_free(this->devnames);
+	g_free(this->dev_names);
 
 	g_slice_free(NetgraphPlugin, this);
 }
 
 static void netgraph_load(NetgraphPlugin *this)
 {
-	this->update_interval = DEFAULT_UPDATE_INTERVAL;
 	this->size = DEFAULT_SIZE;
 	this->has_frame = DEFAULT_HAS_FRAME;
 	this->has_border = DEFAULT_HAS_BORDER;
 	gdk_rgba_parse(&this->bg_color, DEFAULT_BG_COLOR);
 	gdk_rgba_parse(&this->rx_color, DEFAULT_RX_COLOR);
 	gdk_rgba_parse(&this->tx_color, DEFAULT_TX_COLOR);
+	this->update_interval = DEFAULT_UPDATE_INTERVAL;
+	this->min_scale = DEFAULT_MIN_SCALE;
+	g_free(this->dev_names);
+	this->dev_names = NULL;
 
 	g_autofree gchar *file =
 		xfce_panel_plugin_lookup_rc_file(this->plugin);
@@ -145,13 +150,16 @@ static void netgraph_load(NetgraphPlugin *this)
 	g_autoptr(XfceRc) rc = xfce_rc_simple_open(file, TRUE);
 	if (!rc) return;
 
-	this->update_interval = xfce_rc_read_int_entry(rc, "update_interval", DEFAULT_UPDATE_INTERVAL);
 	this->size = xfce_rc_read_int_entry(rc, "size", DEFAULT_SIZE);
 	this->has_frame = !!xfce_rc_read_int_entry(rc, "has_frame", DEFAULT_HAS_FRAME);
 	this->has_border = !!xfce_rc_read_int_entry(rc, "has_border", DEFAULT_HAS_BORDER);
 	gdk_rgba_parse(&this->bg_color, xfce_rc_read_entry(rc, "bg_color", DEFAULT_BG_COLOR));
 	gdk_rgba_parse(&this->rx_color, xfce_rc_read_entry(rc, "rx_color", DEFAULT_RX_COLOR));
 	gdk_rgba_parse(&this->tx_color, xfce_rc_read_entry(rc, "tx_color", DEFAULT_TX_COLOR));
+	this->update_interval = xfce_rc_read_int_entry(rc, "update_interval", DEFAULT_UPDATE_INTERVAL);
+	this->min_scale = xfce_rc_read_int_entry(rc, "min_scale", DEFAULT_MIN_SCALE);
+	const gchar *dev_names = xfce_rc_read_entry(rc, "dev_names", "");
+	if (*dev_names) this->dev_names = g_strdup(dev_names);
 }
 
 void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this)
@@ -174,14 +182,12 @@ void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 	xfce_rc_write_entry(rc, "rx_color", rx_color);
 	g_autofree gchar *tx_color = gdk_rgba_to_string(&this->tx_color);
 	xfce_rc_write_entry(rc, "tx_color", tx_color);
-}
 
-void netgraph_set_update_interval(NetgraphPlugin *this, guint update_interval)
-{
-	this->update_interval = update_interval;
-
-	if (this->timeout_id) g_source_remove(this->timeout_id);
-	this->timeout_id = g_timeout_add(this->update_interval, (GSourceFunc)on_update, this);
+	if (this->dev_names) {
+		xfce_rc_write_entry(rc, "dev_names", this->dev_names);
+	} else {
+		xfce_rc_write_entry(rc, "dev_names", "");
+	}
 }
 
 void netgraph_set_size(NetgraphPlugin *this, guint size)
@@ -206,6 +212,57 @@ void netgraph_set_has_border(NetgraphPlugin *this, gboolean has_border)
 	if (!this->has_border) border_width = 0;
 
 	gtk_container_set_border_width(GTK_CONTAINER(this->box), border_width);
+}
+
+void netgraph_set_update_interval(NetgraphPlugin *this, guint update_interval)
+{
+	this->update_interval = update_interval;
+
+	if (this->timeout_id) g_source_remove(this->timeout_id);
+	this->timeout_id = g_timeout_add(this->update_interval, (GSourceFunc)on_update, this);
+}
+
+void netgraph_set_min_scale(NetgraphPlugin *this, guint64 min_scale)
+{
+	this->min_scale = min_scale;
+	netgraph_redraw(this);
+}
+
+void netgraph_set_dev_names(NetgraphPlugin *this, const gchar *list)
+{
+	if (!list || !*list) {
+		g_free(this->dev_names);
+		this->dev_names = NULL;
+		g_ptr_array_remove_range(this->devs, 0, this->devs->len);
+		update_netdev_list(this);
+		return;
+	}
+
+	gsize orig_len = this->devs->len;
+	g_autoptr(GString) sanitized = g_string_new("");
+	g_auto(GStrv) parts = g_strsplit_set(list, ", \t\r\n", -1);
+	for (gsize i = 0; parts[i] != NULL; i++) {
+		if (*parts[i] == '\0') continue;
+
+		if (sanitized->len != 0) g_string_append(sanitized, ", ");
+		g_string_append(sanitized, parts[i]);
+
+		g_ptr_array_add(this->devs, netdev_new(parts[i], this->hist_len));
+	}
+
+	if (this->devs->len == orig_len) {
+		/* No new devices were added. */
+		return;
+	}
+
+	if (orig_len != 0) {
+		/* Clear the old devices. */
+		g_ptr_array_remove_range(this->devs, 0, orig_len);
+	}
+
+	g_free(this->dev_names);
+	this->dev_names = g_string_free(sanitized, FALSE);
+	sanitized = NULL;  /* Prevent a double-free from g_autoptr. */
 }
 
 void netgraph_redraw(NetgraphPlugin *this)
@@ -309,7 +366,7 @@ static void on_orientation_changed(XfcePanelPlugin *plugin,
 
 static gboolean on_update(NetgraphPlugin *this)
 {
-	if (this->devnames == NULL) update_netdev_list(this);
+	if (this->dev_names == NULL) update_netdev_list(this);
 
 	update_netdev_stats(this);
 	update_tooltip(this);
@@ -320,23 +377,23 @@ static gboolean on_update(NetgraphPlugin *this)
 
 static void update_netdev_list(NetgraphPlugin *this)
 {
-	g_autoptr(GPtrArray) devnames = netdev_enumerate();
-	if (!devnames) return;
+	g_autoptr(GPtrArray) dev_names = netdev_enumerate();
+	if (!dev_names) return;
 
 	gsize i, j;
-	for (i = j = 0; i < devnames->len && j < this->devs->len; ) {
-		gchar *devname = g_ptr_array_index(devnames, i);
+	for (i = j = 0; i < dev_names->len && j < this->devs->len; ) {
+		gchar *dev_name = g_ptr_array_index(dev_names, i);
 		NetworkDevice *dev = g_ptr_array_index(this->devs, j);
 
-		gint cmp = g_strcmp0(devname, dev->name);
+		gint cmp = g_strcmp0(dev_name, dev->name);
 		if (cmp == 0) {
 			i++;
 			j++;
 		} else if (cmp < 0) {
 			/* A new netdev appeared, need to add it to devs. */
-			g_debug("Found new netdev %s.", devname);
+			g_debug("Found new netdev %s.", dev_name);
 			g_ptr_array_insert(this->devs, j,
-					   netdev_new(devname, this->hist_len));
+					   netdev_new(dev_name, this->hist_len));
 			i++;
 			j++;
 		} else {
@@ -346,9 +403,9 @@ static void update_netdev_list(NetgraphPlugin *this)
 			j++;
 		}
 	}
-	for (; i < devnames->len; i++) {
-		gchar *devname = g_ptr_array_index(devnames, i);
-		g_ptr_array_add(this->devs, netdev_new(devname, this->hist_len));
+	for (; i < dev_names->len; i++) {
+		gchar *dev_name = g_ptr_array_index(dev_names, i);
+		g_ptr_array_add(this->devs, netdev_new(dev_name, this->hist_len));
 	}
 }
 
@@ -361,7 +418,7 @@ static void update_netdev_stats(NetgraphPlugin *this)
 		netdev_update(dev, this->hist_len, this->update_interval);
 
 		/* Don't clean up devs if we're monitoring specific interfaces. */
-		if (this->devnames == NULL) {
+		if (this->dev_names == NULL) {
 			if (dev->down >= this->hist_len) {
 				g_debug("Removing netdev %s, was down for %d intervals.", dev->name, dev->down);
 				g_ptr_array_remove_index(this->devs, i);
@@ -373,8 +430,7 @@ static void update_netdev_stats(NetgraphPlugin *this)
 		this->scale += dev->max_rx + dev->max_tx;
 	}
 
-	/* TODO: Make the minimum scale configurable. */
-	if (this->scale < 5120) this->scale = 5120;
+	if (this->scale < this->min_scale) this->scale = this->min_scale;
 }
 
 static void update_tooltip(NetgraphPlugin *this)
@@ -387,9 +443,11 @@ static void update_tooltip(NetgraphPlugin *this)
 		NetworkDevice *dev = g_ptr_array_index(this->devs, i);
 		format_human_size(dev->hist_rx[0], rx_buf, BUFSIZE);
 		format_human_size(dev->hist_tx[0], tx_buf, BUFSIZE);
+		g_autofree gchar *dev_name_esc =
+			g_markup_escape_text(dev->name, -1);
 		g_string_append_printf(
 			label, "<b>%s</b>: %sB/s down; %sB/s up\n",
-			dev->name, rx_buf, tx_buf);
+			dev_name_esc, rx_buf, tx_buf);
 	}
 
 	format_human_size(this->scale, rx_buf, BUFSIZE);

@@ -64,7 +64,6 @@ static void netgraph_construct(XfcePanelPlugin *plugin)
 	xfce_textdomain(GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR, "UTF-8");
 
 	NetgraphPlugin *this = netgraph_new(plugin);
-	netgraph_load(this);
 
 	g_signal_connect(plugin, "free-data", G_CALLBACK(netgraph_free), this);
 	g_signal_connect(plugin, "save", G_CALLBACK(netgraph_save), this);
@@ -100,9 +99,18 @@ static NetgraphPlugin *netgraph_new(XfcePanelPlugin *plugin)
 	gtk_container_add(GTK_CONTAINER(this->frame), this->draw_area);
 	g_signal_connect_after(this->draw_area, "draw", G_CALLBACK(on_draw), this);
 
+	this->devs = g_ptr_array_new_with_free_func((GDestroyNotify)netdev_free);
+
+	netgraph_load(this);
+
+	netgraph_set_size(this, this->size);
+	netgraph_set_has_frame(this, this->has_frame);
+	netgraph_set_has_border(this, this->has_border);
+
 	gtk_widget_show_all(this->ebox);
 
-	this->devs = g_ptr_array_new_with_free_func((GDestroyNotify)netdev_free);
+	/* This must be called last, as it starts the update timer. */
+	netgraph_set_update_interval(this, this->update_interval);
 
 	return this;
 }
@@ -122,41 +130,28 @@ static void netgraph_free(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 
 static void netgraph_load(NetgraphPlugin *this)
 {
-	guint update_interval = DEFAULT_UPDATE_INTERVAL;
-	guint size = DEFAULT_SIZE;
-	gboolean has_frame = DEFAULT_HAS_FRAME;
-	gboolean has_border = DEFAULT_HAS_BORDER;
-	const gchar *bg_color = DEFAULT_BG_COLOR;
-	const gchar *rx_color = DEFAULT_RX_COLOR;
-	const gchar *tx_color = DEFAULT_TX_COLOR;
-
-	g_autoptr(XfceRc) rc = NULL;
+	this->update_interval = DEFAULT_UPDATE_INTERVAL;
+	this->size = DEFAULT_SIZE;
+	this->has_frame = DEFAULT_HAS_FRAME;
+	this->has_border = DEFAULT_HAS_BORDER;
+	gdk_rgba_parse(&this->bg_color, DEFAULT_BG_COLOR);
+	gdk_rgba_parse(&this->rx_color, DEFAULT_RX_COLOR);
+	gdk_rgba_parse(&this->tx_color, DEFAULT_TX_COLOR);
 
 	g_autofree gchar *file =
 		xfce_panel_plugin_lookup_rc_file(this->plugin);
-	if (!file) goto apply;
+	if (!file) return;
 
-	rc = xfce_rc_simple_open(file, TRUE);
-	if (!rc) goto apply;
+	g_autoptr(XfceRc) rc = xfce_rc_simple_open(file, TRUE);
+	if (!rc) return;
 
-	update_interval = xfce_rc_read_int_entry(rc, "update_interval", DEFAULT_UPDATE_INTERVAL);
-	size = xfce_rc_read_int_entry(rc, "size", DEFAULT_SIZE);
-	has_frame = !!xfce_rc_read_int_entry(rc, "has_frame", DEFAULT_HAS_FRAME);
-	has_border = !!xfce_rc_read_int_entry(rc, "has_border", DEFAULT_HAS_BORDER);
-	bg_color = xfce_rc_read_entry(rc, "bg_color", DEFAULT_BG_COLOR);
-	rx_color = xfce_rc_read_entry(rc, "rx_color", DEFAULT_RX_COLOR);
-	tx_color = xfce_rc_read_entry(rc, "tx_color", DEFAULT_TX_COLOR);
-
-apply:
-	netgraph_set_size(this, size);
-	netgraph_set_has_frame(this, has_frame);
-	netgraph_set_has_border(this, has_border);
-	gdk_rgba_parse(&this->bg_color, bg_color);
-	gdk_rgba_parse(&this->rx_color, rx_color);
-	gdk_rgba_parse(&this->tx_color, tx_color);
-
-	/* This must be called last, as it starts the update timer. */
-	netgraph_set_update_interval(this, update_interval);
+	this->update_interval = xfce_rc_read_int_entry(rc, "update_interval", DEFAULT_UPDATE_INTERVAL);
+	this->size = xfce_rc_read_int_entry(rc, "size", DEFAULT_SIZE);
+	this->has_frame = !!xfce_rc_read_int_entry(rc, "has_frame", DEFAULT_HAS_FRAME);
+	this->has_border = !!xfce_rc_read_int_entry(rc, "has_border", DEFAULT_HAS_BORDER);
+	gdk_rgba_parse(&this->bg_color, xfce_rc_read_entry(rc, "bg_color", DEFAULT_BG_COLOR));
+	gdk_rgba_parse(&this->rx_color, xfce_rc_read_entry(rc, "rx_color", DEFAULT_RX_COLOR));
+	gdk_rgba_parse(&this->tx_color, xfce_rc_read_entry(rc, "tx_color", DEFAULT_TX_COLOR));
 }
 
 void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this)

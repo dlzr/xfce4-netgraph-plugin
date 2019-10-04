@@ -1,4 +1,4 @@
-* Update icons, create SVG version of the icon.
+* web page
 
 * email about changes to /usr/share/xfce4/dev-tools/m4macros/xdt-features.m4
 
@@ -6,3 +6,5 @@
   libxfce4util-4.14.0/libxfce4util/xfce-rc.h
 
 * fix tooltip bug in gtk+
+
+* debian packaging

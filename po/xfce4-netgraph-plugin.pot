@@ -3,111 +3,106 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-# Translators:
-# David Lazar <dlazar@gmail.com>, 2019
-#
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2019-10-05 18:01+0200\n"
-"PO-Revision-Date: 2019-09-11 19:48+0200\n"
-"Last-Translator: David Lazar <dlazar@gmail.com>, 2019\n"
-"Language-Team: Romanian (https://www.transifex.com/xfce/teams/16840/ro/)\n"
-"Language: ro\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
-"20)) ? 1 : 2;\n"
 
 #: ../panel-plugin/dialogs.c:105
 msgid "Height (px):"
-msgstr "Înălțime (px):"
+msgstr ""
 
 #: ../panel-plugin/dialogs.c:263 ../panel-plugin/netgraph.desktop.in.h:2
 msgid "Graphical representation of the network traffic"
-msgstr "Reprezentare grafică a traficului de rețea"
+msgstr ""
 
 #: ../panel-plugin/dialogs.c:265
 msgid "Copyright © 2019\n"
-msgstr "Copyright © 2019\n"
+msgstr ""
 
 #: ../panel-plugin/netgraph.c:449
 #, c-format
 msgid "<b>%s</b>: %sB/s down; %sB/s up\n"
-msgstr "<b>%s</b>: %sB/s recepționat; %sB/s transmis\n"
+msgstr ""
 
 #: ../panel-plugin/netgraph.c:454
 #, c-format
 msgid "current scale: %sB/s"
-msgstr "scara curentă: %sB/s"
+msgstr ""
 
 #: ../panel-plugin/netgraph.desktop.in.h:1
 msgid "Netgraph"
-msgstr "Netgraph"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:1
 msgid "all interfaces"
-msgstr "toate interfețele"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:2
 msgid "these interfaces:"
-msgstr "următoarele interfețe"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:3
 msgid "Netgraph Properties"
-msgstr "Proprietăți Netgraph"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:4
 msgid "_Close"
-msgstr "Închide"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:5
 msgid "Width (px):"
-msgstr "Lățime (px):"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:6
 msgid "Show frame"
-msgstr "Arată cadrul"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:7
 msgid "Show border"
-msgstr "Arată marginea"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:8
 msgid "Appearance"
-msgstr "Aspect"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:9
 msgid "Background:"
-msgstr "Fundal:"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:10
 msgid "Download traffic:"
-msgstr "Trafic recepționat:"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:11
 msgid "Upload traffic:"
-msgstr "Trafic transmis:"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:12
 msgid "Colors"
-msgstr "Culori"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:13
 msgid "Update interval (ms):"
-msgstr "Interval de actualizare (ms):"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:14
 msgid "Don't zoom in below (KB/s):"
-msgstr "Nu magnifica sub (KB/s):"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:15
 msgid "Monitor"
-msgstr "Monitorizează"
+msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:16
 msgid "Behavior"
-msgstr "Comportament"
+msgstr ""

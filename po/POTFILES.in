@@ -1,3 +1,6 @@
+panel-plugin/dialogs.c
+panel-plugin/netdev.c
+panel-plugin/netdev_linux.c
 panel-plugin/netgraph.c
-panel-plugin/netgraph-dialogs.c
 panel-plugin/netgraph.desktop.in
+panel-plugin/prefs-dialog.glade

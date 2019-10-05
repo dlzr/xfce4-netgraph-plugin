@@ -446,12 +446,12 @@ static void update_tooltip(NetgraphPlugin *this)
 		g_autofree gchar *dev_name_esc =
 			g_markup_escape_text(dev->name, -1);
 		g_string_append_printf(
-			label, "<b>%s</b>: %sB/s down; %sB/s up\n",
+			label, _("<b>%s</b>: %sB/s down; %sB/s up\n"),
 			dev_name_esc, rx_buf, tx_buf);
 	}
 
 	format_human_size(this->scale, rx_buf, BUFSIZE);
-	g_string_append_printf(label, "current scale: %sB/s", rx_buf);
+	g_string_append_printf(label, _("current scale: %sB/s"), rx_buf);
 
 	gtk_widget_set_tooltip_markup(this->box, label->str);
 #undef BUFSIZE

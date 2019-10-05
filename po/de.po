@@ -2,22 +2,111 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-# 
+#
 # Translators:
 # David Lazar <dlazar@gmail.com>, 2019
-# 
+#
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-09-11 19:48+0200\n"
+"POT-Creation-Date: 2019-10-05 18:01+0200\n"
 "PO-Revision-Date: 2019-09-11 19:48+0200\n"
 "Last-Translator: David Lazar <dlazar@gmail.com>, 2019\n"
 "Language-Team: German (https://www.transifex.com/xfce/teams/16840/de/)\n"
+"Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: de\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+#: ../panel-plugin/dialogs.c:105
+msgid "Height (px):"
+msgstr "Höhe (px):"
+
+#: ../panel-plugin/dialogs.c:263 ../panel-plugin/netgraph.desktop.in.h:2
+msgid "Graphical representation of the network traffic"
+msgstr "Graphische Darstellung des Netzwerkverkehrs"
+
+#: ../panel-plugin/dialogs.c:265
+msgid "Copyright © 2019\n"
+msgstr "Copyright © 2019\n"
+
+#: ../panel-plugin/netgraph.c:449
+#, c-format
+msgid "<b>%s</b>: %sB/s down; %sB/s up\n"
+msgstr "<b>%s</b>: %sB/s eingehend; %sB/s ausgehend\n"
+
+#: ../panel-plugin/netgraph.c:454
+#, c-format
+msgid "current scale: %sB/s"
+msgstr "aktuelle Skala: %sB/s"
+
+#: ../panel-plugin/netgraph.desktop.in.h:1
+msgid "Netgraph"
+msgstr "Netgraph"
+
+#: ../panel-plugin/prefs-dialog.glade.h:1
+msgid "all interfaces"
+msgstr "alle Netzwerkschnittstellen"
+
+#: ../panel-plugin/prefs-dialog.glade.h:2
+msgid "these interfaces:"
+msgstr "folgende Netzwerkschnittstellen:"
+
+#: ../panel-plugin/prefs-dialog.glade.h:3
+msgid "Netgraph Properties"
+msgstr "Eigenschaften Netgraph"
+
+#: ../panel-plugin/prefs-dialog.glade.h:4
+msgid "_Close"
+msgstr "Schließen"
+
+#: ../panel-plugin/prefs-dialog.glade.h:5
+msgid "Width (px):"
+msgstr "Breite (px):"
+
+#: ../panel-plugin/prefs-dialog.glade.h:6
+msgid "Show frame"
+msgstr "Rahmen anzeigen"
+
+#: ../panel-plugin/prefs-dialog.glade.h:7
+msgid "Show border"
+msgstr "Abstand um Anzeigeelemente"
+
+#: ../panel-plugin/prefs-dialog.glade.h:8
+msgid "Appearance"
+msgstr "Aussehen"
+
+#: ../panel-plugin/prefs-dialog.glade.h:9
+msgid "Background:"
+msgstr "Hintergrund:"
+
+#: ../panel-plugin/prefs-dialog.glade.h:10
+msgid "Download traffic:"
+msgstr "Eingehender Datenverkehr:"
+
+#: ../panel-plugin/prefs-dialog.glade.h:11
+msgid "Upload traffic:"
+msgstr "Ausgehender Datenverkehr:"
+
+#: ../panel-plugin/prefs-dialog.glade.h:12
+msgid "Colors"
+msgstr "Farben"
+
+#: ../panel-plugin/prefs-dialog.glade.h:13
+msgid "Update interval (ms):"
+msgstr "Auffrischungsintervall (ms):"
+
+#: ../panel-plugin/prefs-dialog.glade.h:14
+msgid "Don't zoom in below (KB/s):"
+msgstr "Minimale Ansichtsskala (KB/s):"
+
+#: ../panel-plugin/prefs-dialog.glade.h:15
+msgid "Monitor"
+msgstr "Überwache"
+
+#: ../panel-plugin/prefs-dialog.glade.h:16
+msgid "Behavior"
+msgstr "Verhalten"

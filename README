@@ -1,8 +1,31 @@
 What is it?
 ===========
 
-This is a plugin for the Xfce panel that shows a graph of the recent network
-traffic, similar to the CPU Graph plugin.
+This is a plugin for the XFCE panel that shows a graph of the recent network
+traffic, similar to the CPU Graph plugin.  Yes, there are many other similar
+plugins out there, but this one is slightly different:
+
+ * It displays the upload traffic separately from the download traffic (upload
+   is on top, download on the bottom).
+
+   ![Screenshot of the plugin](doc/screenshot.png)
+
+ * It automatically adjusts the scale of the chart, so you can always see
+   what's going on (even if there's very little traffic, it gets zoomed-in).
+   The tooltip tells you what the current scale is.
+
+ * It monitors *all* network interfaces automatically (as in, you don't have to
+   specify which interface you want monitored, so when you plug in a network
+   cable and all the traffic switches over from WiFi, you don't have to
+   reconfigure the plugin).  But if you want to monitor a single interface (or
+   a specific set of interfaces), you can still do that.
+
+   ![Screenshot of the tooltip](doc/tooltip.png)
+
+ * It's fairly configurable.
+
+   ![Screenshot of the Properties dialog](doc/properties.png)
+
 
 
 Installation
@@ -14,4 +37,5 @@ The file 'INSTALL' contains generic installation instructions.
 How to report bugs?
 ===================
 
-TODO
+If you have found a bug or have an idea for an improvement, open an issue on
+GitHub: https://github.com/dlzr/xfce4-netgraph-plugin/issues

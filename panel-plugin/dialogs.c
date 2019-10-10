@@ -32,7 +32,7 @@
 #include "prefs-dialog.glade.h"
 
 
-#define PLUGIN_WEBSITE "https://TODO"
+#define PLUGIN_WEBSITE "https://github.com/dlzr/xfce4-netgraph-plugin"
 
 #undef G_LOG_DOMAIN
 #define G_LOG_DOMAIN	"netgraph"

@@ -8,7 +8,7 @@ plugins out there, but this one is slightly different:
  * It displays the upload traffic separately from the download traffic (upload
    is on top, download on the bottom).
 
-   <img src="doc/screenshot.png" alt="Screenshot of the plugin" width="1000">
+   <img src="doc/screenshot.png" alt="Screenshot of the plugin" width="60%">
 
  * It automatically adjusts the scale of the chart, so you can always see
    what's going on (even if there's very little traffic, it gets zoomed-in).
@@ -20,11 +20,11 @@ plugins out there, but this one is slightly different:
    reconfigure the plugin).  But if you want to monitor a single interface (or
    a specific set of interfaces), you can still do that.
 
-   <img src="doc/tooltip.png" alt="Screenshot of the tooltip" width="1000">
+   <img src="doc/tooltip.png" alt="Screenshot of the tooltip" width="60%">
 
  * It's fairly configurable.
 
-   <img src="doc/properties.png" alt="Screenshot of the Properties dialog" width="646">
+   <img src="doc/properties.png" alt="Screenshot of the Properties dialog" width="38%">
 
 
 

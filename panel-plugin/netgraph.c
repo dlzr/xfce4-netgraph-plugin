@@ -60,6 +60,11 @@ static void update_netdev_stats(NetgraphPlugin *this);
 static void update_tooltip(NetgraphPlugin *this);
 static gchar *format_human_size(guint64 num, gchar *buf, gsize bufsize);
 
+
+// Allow variable declarations at the first use.
+#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
+
+
 static void netgraph_construct(XfcePanelPlugin *plugin)
 {
 	xfce_textdomain(GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR, "UTF-8");

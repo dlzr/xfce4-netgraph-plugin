@@ -20,6 +20,11 @@ static gboolean device_is_up(const gchar *devname);
 static guint64 read_u64_from_file(const gchar *filename);
 static int strptrcmp(gconstpointer a, gconstpointer b);
 
+
+// Allow variable declarations at the first use.
+#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
+
+
 GPtrArray *netdev_enumerate(void)
 {
 	g_autoptr(GDir) dir = g_dir_open("/sys/class/net", 0, NULL);

@@ -41,6 +41,10 @@ static void netdev_os_read_stats(NetworkDevice *this, DeviceStats* stats);
 static void shift_get_max(guint64 *hist, gsize len, guint64 *max);
 
 
+// Allow variable declarations at the first use.
+#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
+
+
 NetworkDevice *netdev_new(gchar *name, gsize hist_len)
 {
 	NetworkDevice *this = g_slice_new0(NetworkDevice);

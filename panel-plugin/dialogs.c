@@ -58,6 +58,10 @@ static void on_dev_names_changed(GtkWidget *widget, NetgraphPlugin *this);
 static gboolean on_dev_names_timeout(NetgraphPlugin *this);
 
 
+// Allow variable declarations at the first use.
+#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
+
+
 void netgraph_configure(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 {
 	g_autoptr(GError) err = NULL;

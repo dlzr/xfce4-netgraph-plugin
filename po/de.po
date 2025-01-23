@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-05 18:01+0200\n"
+"POT-Creation-Date: 2025-01-23 18:33+0100\n"
 "PO-Revision-Date: 2019-09-11 19:48+0200\n"
 "Last-Translator: David Lazar <dlazar@gmail.com>, 2019\n"
 "Language-Team: German (https://www.transifex.com/xfce/teams/16840/de/)\n"
@@ -21,24 +21,24 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../panel-plugin/dialogs.c:105
+#: ../panel-plugin/dialogs.c:111
 msgid "Height (px):"
 msgstr "Höhe (px):"
 
-#: ../panel-plugin/dialogs.c:263 ../panel-plugin/netgraph.desktop.in.h:2
+#: ../panel-plugin/dialogs.c:296 ../panel-plugin/netgraph.desktop.in.h:2
 msgid "Graphical representation of the network traffic"
 msgstr "Graphische Darstellung des Netzwerkverkehrs"
 
-#: ../panel-plugin/dialogs.c:265
+#: ../panel-plugin/dialogs.c:298
 msgid "Copyright © 2019\n"
 msgstr "Copyright © 2019\n"
 
-#: ../panel-plugin/netgraph.c:449
+#: ../panel-plugin/netgraph.c:491
 #, c-format
 msgid "<b>%s</b>: %sB/s down; %sB/s up\n"
 msgstr "<b>%s</b>: %sB/s eingehend; %sB/s ausgehend\n"
 
-#: ../panel-plugin/netgraph.c:454
+#: ../panel-plugin/netgraph.c:496
 #, c-format
 msgid "current scale: %sB/s"
 msgstr "aktuelle Skala: %sB/s"
@@ -73,40 +73,48 @@ msgstr "Rahmen anzeigen"
 
 #: ../panel-plugin/prefs-dialog.glade.h:7
 msgid "Show border"
-msgstr "Abstand um Anzeigeelemente"
+msgstr "Rand anzeigen"
 
 #: ../panel-plugin/prefs-dialog.glade.h:8
+msgid "Show current scale"
+msgstr "Aktuelle Skala anzeigen"
+
+#: ../panel-plugin/prefs-dialog.glade.h:9
 msgid "Appearance"
 msgstr "Aussehen"
 
-#: ../panel-plugin/prefs-dialog.glade.h:9
+#: ../panel-plugin/prefs-dialog.glade.h:10
 msgid "Background:"
 msgstr "Hintergrund:"
 
-#: ../panel-plugin/prefs-dialog.glade.h:10
+#: ../panel-plugin/prefs-dialog.glade.h:11
 msgid "Download traffic:"
 msgstr "Eingehender Datenverkehr:"
 
-#: ../panel-plugin/prefs-dialog.glade.h:11
+#: ../panel-plugin/prefs-dialog.glade.h:12
 msgid "Upload traffic:"
 msgstr "Ausgehender Datenverkehr:"
 
-#: ../panel-plugin/prefs-dialog.glade.h:12
+#: ../panel-plugin/prefs-dialog.glade.h:13
+msgid "Current scale:"
+msgstr "Aktuelle Skala:"
+
+#: ../panel-plugin/prefs-dialog.glade.h:14
 msgid "Colors"
 msgstr "Farben"
 
-#: ../panel-plugin/prefs-dialog.glade.h:13
+#: ../panel-plugin/prefs-dialog.glade.h:15
 msgid "Update interval (ms):"
 msgstr "Auffrischungsintervall (ms):"
 
-#: ../panel-plugin/prefs-dialog.glade.h:14
+#: ../panel-plugin/prefs-dialog.glade.h:16
 msgid "Don't zoom in below (KB/s):"
 msgstr "Minimale Ansichtsskala (KB/s):"
 
-#: ../panel-plugin/prefs-dialog.glade.h:15
+#: ../panel-plugin/prefs-dialog.glade.h:17
 msgid "Monitor"
 msgstr "Überwache"
 
-#: ../panel-plugin/prefs-dialog.glade.h:16
+#: ../panel-plugin/prefs-dialog.glade.h:18
 msgid "Behavior"
 msgstr "Verhalten"

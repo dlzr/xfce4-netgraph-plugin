@@ -48,9 +48,11 @@ static void netgraph_configure_response(GtkWidget *dialog, gint response, Netgra
 static void on_size_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_has_frame_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_has_border_changed(GtkWidget *widget, NetgraphPlugin *this);
+static void on_show_scale_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_bg_color_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_rx_color_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_tx_color_changed(GtkWidget *widget, NetgraphPlugin *this);
+static void on_text_color_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_update_interval_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_min_scale_changed(GtkWidget *widget, NetgraphPlugin *this);
 static void on_monitor_devs_changed(GtkWidget *widget, NetgraphPlugin *this);
@@ -121,6 +123,12 @@ void netgraph_configure(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(object), this->has_border);
 	g_signal_connect(object, "toggled", G_CALLBACK(on_has_border_changed), this);
 
+	this->text_color_row = gtk_builder_get_object(builder, "text-color-row");
+	object = gtk_builder_get_object(builder, "show-scale");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(object), this->show_scale);
+	g_signal_connect(object, "toggled", G_CALLBACK(on_show_scale_changed), this);
+	on_show_scale_changed(GTK_WIDGET(object), this);
+
 	object = gtk_builder_get_object(builder, "bg-color");
 	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(object), &this->bg_color);
 	g_signal_connect(object, "color-set", G_CALLBACK(on_bg_color_changed), this);
@@ -132,6 +140,10 @@ void netgraph_configure(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 	object = gtk_builder_get_object(builder, "tx-color");
 	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(object), &this->tx_color);
 	g_signal_connect(object, "color-set", G_CALLBACK(on_tx_color_changed), this);
+
+	object = gtk_builder_get_object(builder, "text-color");
+	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(object), &this->text_color);
+	g_signal_connect(object, "color-set", G_CALLBACK(on_text_color_changed), this);
 
 	object = gtk_builder_get_object(builder, "update-interval");
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(object), this->update_interval);
@@ -188,6 +200,17 @@ static void on_has_border_changed(GtkWidget *widget, NetgraphPlugin *this)
 		this, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
 }
 
+static void on_show_scale_changed(GtkWidget *widget, NetgraphPlugin *this)
+{
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget))) {
+		gtk_widget_show(GTK_WIDGET(this->text_color_row));
+	} else {
+		gtk_widget_hide(GTK_WIDGET(this->text_color_row));
+	}
+	netgraph_set_show_scale(
+		this, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)));
+}
+
 static void on_bg_color_changed(GtkWidget *widget, NetgraphPlugin *this)
 {
 	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(widget), &this->bg_color);
@@ -203,6 +226,12 @@ static void on_rx_color_changed(GtkWidget *widget, NetgraphPlugin *this)
 static void on_tx_color_changed(GtkWidget *widget, NetgraphPlugin *this)
 {
 	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(widget), &this->tx_color);
+	netgraph_redraw(this);
+}
+
+static void on_text_color_changed(GtkWidget *widget, NetgraphPlugin *this)
+{
+	gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(widget), &this->text_color);
 	netgraph_redraw(this);
 }
 

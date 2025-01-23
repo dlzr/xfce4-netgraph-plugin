@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-05 18:01+0200\n"
+"POT-Creation-Date: 2025-01-23 18:33+0100\n"
 "PO-Revision-Date: 2019-09-11 19:48+0200\n"
 "Last-Translator: David Lazar <dlazar@gmail.com>, 2019\n"
 "Language-Team: Romanian (https://www.transifex.com/xfce/teams/16840/ro/)\n"
@@ -22,24 +22,24 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
 "20)) ? 1 : 2;\n"
 
-#: ../panel-plugin/dialogs.c:105
+#: ../panel-plugin/dialogs.c:111
 msgid "Height (px):"
 msgstr "Înălțime (px):"
 
-#: ../panel-plugin/dialogs.c:263 ../panel-plugin/netgraph.desktop.in.h:2
+#: ../panel-plugin/dialogs.c:296 ../panel-plugin/netgraph.desktop.in.h:2
 msgid "Graphical representation of the network traffic"
 msgstr "Reprezentare grafică a traficului de rețea"
 
-#: ../panel-plugin/dialogs.c:265
+#: ../panel-plugin/dialogs.c:298
 msgid "Copyright © 2019\n"
 msgstr "Copyright © 2019\n"
 
-#: ../panel-plugin/netgraph.c:449
+#: ../panel-plugin/netgraph.c:491
 #, c-format
 msgid "<b>%s</b>: %sB/s down; %sB/s up\n"
 msgstr "<b>%s</b>: %sB/s recepționat; %sB/s transmis\n"
 
-#: ../panel-plugin/netgraph.c:454
+#: ../panel-plugin/netgraph.c:496
 #, c-format
 msgid "current scale: %sB/s"
 msgstr "scara curentă: %sB/s"
@@ -70,44 +70,52 @@ msgstr "Lățime (px):"
 
 #: ../panel-plugin/prefs-dialog.glade.h:6
 msgid "Show frame"
-msgstr "Arată cadrul"
+msgstr "Afișează cadrul"
 
 #: ../panel-plugin/prefs-dialog.glade.h:7
 msgid "Show border"
-msgstr "Arată marginea"
+msgstr "Afișează marginea"
 
 #: ../panel-plugin/prefs-dialog.glade.h:8
+msgid "Show current scale"
+msgstr "Afișează scara curentă"
+
+#: ../panel-plugin/prefs-dialog.glade.h:9
 msgid "Appearance"
 msgstr "Aspect"
 
-#: ../panel-plugin/prefs-dialog.glade.h:9
+#: ../panel-plugin/prefs-dialog.glade.h:10
 msgid "Background:"
 msgstr "Fundal:"
 
-#: ../panel-plugin/prefs-dialog.glade.h:10
+#: ../panel-plugin/prefs-dialog.glade.h:11
 msgid "Download traffic:"
 msgstr "Trafic recepționat:"
 
-#: ../panel-plugin/prefs-dialog.glade.h:11
+#: ../panel-plugin/prefs-dialog.glade.h:12
 msgid "Upload traffic:"
 msgstr "Trafic transmis:"
 
-#: ../panel-plugin/prefs-dialog.glade.h:12
+#: ../panel-plugin/prefs-dialog.glade.h:13
+msgid "Current scale:"
+msgstr "Scara curentă:"
+
+#: ../panel-plugin/prefs-dialog.glade.h:14
 msgid "Colors"
 msgstr "Culori"
 
-#: ../panel-plugin/prefs-dialog.glade.h:13
+#: ../panel-plugin/prefs-dialog.glade.h:15
 msgid "Update interval (ms):"
 msgstr "Interval de actualizare (ms):"
 
-#: ../panel-plugin/prefs-dialog.glade.h:14
+#: ../panel-plugin/prefs-dialog.glade.h:16
 msgid "Don't zoom in below (KB/s):"
 msgstr "Nu magnifica sub (KB/s):"
 
-#: ../panel-plugin/prefs-dialog.glade.h:15
+#: ../panel-plugin/prefs-dialog.glade.h:17
 msgid "Monitor"
 msgstr "Monitorizează"
 
-#: ../panel-plugin/prefs-dialog.glade.h:16
+#: ../panel-plugin/prefs-dialog.glade.h:18
 msgid "Behavior"
 msgstr "Comportament"

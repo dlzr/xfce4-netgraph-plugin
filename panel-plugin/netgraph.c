@@ -38,12 +38,16 @@
 #define DEFAULT_SIZE		32	/* pixels */
 #define DEFAULT_HAS_FRAME	TRUE
 #define DEFAULT_HAS_BORDER	FALSE
-#define DEFAULT_BG_COLOR	"rgba(0,0,0,0)"
+#define DEFAULT_SHOW_SCALE	FALSE
+#define DEFAULT_BG_COLOR	"rgba(0,0,0,0.0)"
 #define DEFAULT_RX_COLOR	"rgb(16,80,73)"
 #define DEFAULT_TX_COLOR	"rgb(170,83,8)"
 #define DEFAULT_UPDATE_INTERVAL	1000	/* milliseconds */
 #define DEFAULT_MIN_SCALE	5120	/* bytes/second */
 
+#define DEFAULT_TEXT_COLOR	"rgba(0,0,0,1.0)"
+#define DEFAULT_TEXT_FONT	"sans"
+#define DEFAULT_TEXT_SIZE	16
 
 static void netgraph_construct(XfcePanelPlugin *plugin);
 static NetgraphPlugin *netgraph_new(XfcePanelPlugin *plugin);
@@ -58,7 +62,7 @@ static gboolean on_update(NetgraphPlugin *this);
 static void update_netdev_list(NetgraphPlugin *this);
 static void update_netdev_stats(NetgraphPlugin *this);
 static void update_tooltip(NetgraphPlugin *this);
-static gchar *format_human_size(guint64 num, gchar *buf, gsize bufsize);
+static gchar *format_human_size(guint64 num, gchar *sep, gchar *buf, gsize bufsize);
 
 
 // Allow variable declarations at the first use.
@@ -140,9 +144,11 @@ static void netgraph_load(NetgraphPlugin *this)
 	this->size = DEFAULT_SIZE;
 	this->has_frame = DEFAULT_HAS_FRAME;
 	this->has_border = DEFAULT_HAS_BORDER;
+	this->show_scale = DEFAULT_SHOW_SCALE;
 	gdk_rgba_parse(&this->bg_color, DEFAULT_BG_COLOR);
 	gdk_rgba_parse(&this->rx_color, DEFAULT_RX_COLOR);
 	gdk_rgba_parse(&this->tx_color, DEFAULT_TX_COLOR);
+	gdk_rgba_parse(&this->text_color, DEFAULT_TEXT_COLOR);
 	this->update_interval = DEFAULT_UPDATE_INTERVAL;
 	this->min_scale = DEFAULT_MIN_SCALE;
 	g_free(this->dev_names);
@@ -158,9 +164,11 @@ static void netgraph_load(NetgraphPlugin *this)
 	this->size = xfce_rc_read_int_entry(rc, "size", DEFAULT_SIZE);
 	this->has_frame = !!xfce_rc_read_int_entry(rc, "has_frame", DEFAULT_HAS_FRAME);
 	this->has_border = !!xfce_rc_read_int_entry(rc, "has_border", DEFAULT_HAS_BORDER);
+	this->show_scale = !!xfce_rc_read_int_entry(rc, "show_scale", DEFAULT_SHOW_SCALE);
 	gdk_rgba_parse(&this->bg_color, xfce_rc_read_entry(rc, "bg_color", DEFAULT_BG_COLOR));
 	gdk_rgba_parse(&this->rx_color, xfce_rc_read_entry(rc, "rx_color", DEFAULT_RX_COLOR));
 	gdk_rgba_parse(&this->tx_color, xfce_rc_read_entry(rc, "tx_color", DEFAULT_TX_COLOR));
+	gdk_rgba_parse(&this->text_color, xfce_rc_read_entry(rc, "text_color", DEFAULT_TEXT_COLOR));
 	this->update_interval = xfce_rc_read_int_entry(rc, "update_interval", DEFAULT_UPDATE_INTERVAL);
 	this->min_scale = xfce_rc_read_int_entry(rc, "min_scale", DEFAULT_MIN_SCALE);
 	const gchar *dev_names = xfce_rc_read_entry(rc, "dev_names", "");
@@ -180,6 +188,7 @@ void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 	xfce_rc_write_int_entry(rc, "size", this->size);
 	xfce_rc_write_int_entry(rc, "has_frame", !!this->has_frame);
 	xfce_rc_write_int_entry(rc, "has_border", !!this->has_border);
+	xfce_rc_write_int_entry(rc, "show_scale", !!this->show_scale);
 
 	g_autofree gchar *bg_color = gdk_rgba_to_string(&this->bg_color);
 	xfce_rc_write_entry(rc, "bg_color", bg_color);
@@ -187,6 +196,8 @@ void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this)
 	xfce_rc_write_entry(rc, "rx_color", rx_color);
 	g_autofree gchar *tx_color = gdk_rgba_to_string(&this->tx_color);
 	xfce_rc_write_entry(rc, "tx_color", tx_color);
+	g_autofree gchar *text_color = gdk_rgba_to_string(&this->text_color);
+	xfce_rc_write_entry(rc, "text_color", text_color);
 
 	if (this->dev_names) {
 		xfce_rc_write_entry(rc, "dev_names", this->dev_names);
@@ -217,6 +228,12 @@ void netgraph_set_has_border(NetgraphPlugin *this, gboolean has_border)
 	if (!this->has_border) border_width = 0;
 
 	gtk_container_set_border_width(GTK_CONTAINER(this->box), border_width);
+}
+
+void netgraph_set_show_scale(NetgraphPlugin *this, gboolean show_scale)
+{
+	this->show_scale = show_scale;
+	netgraph_redraw(this);
 }
 
 void netgraph_set_update_interval(NetgraphPlugin *this, guint update_interval)
@@ -309,6 +326,26 @@ static void on_draw(GtkWidget *widget, cairo_t *cr, NetgraphPlugin *this)
 		cairo_move_to(cr, x + 0.5, 0.5);
 		cairo_line_to(cr, x + 0.5, seg - 0.5);
 		cairo_stroke(cr);
+	}
+
+	if (this->show_scale) {
+		gdk_cairo_set_source_rgba(cr, &this->text_color);
+		cairo_select_font_face(cr, DEFAULT_TEXT_FONT, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_set_font_size(cr, DEFAULT_TEXT_SIZE);
+
+#define BUFSIZE	32
+		gchar text[BUFSIZE];
+		format_human_size(this->scale, "", text, BUFSIZE);
+#undef BUFSIZE
+
+		// Center the text.
+		cairo_text_extents_t extents;
+		cairo_text_extents(cr, text, &extents);
+		double x = (w - extents.width) / 2 - extents.x_bearing;
+		double y = (h - extents.height) / 2 - extents.y_bearing;
+
+		cairo_move_to(cr, x, y);
+		cairo_show_text(cr, text);
 	}
 }
 
@@ -446,8 +483,8 @@ static void update_tooltip(NetgraphPlugin *this)
 	gchar rx_buf[BUFSIZE], tx_buf[BUFSIZE];
 	for (gsize i = 0; i < this->devs->len; i++) {
 		NetworkDevice *dev = g_ptr_array_index(this->devs, i);
-		format_human_size(dev->hist_rx[0], rx_buf, BUFSIZE);
-		format_human_size(dev->hist_tx[0], tx_buf, BUFSIZE);
+		format_human_size(dev->hist_rx[0], " ", rx_buf, BUFSIZE);
+		format_human_size(dev->hist_tx[0], " ", tx_buf, BUFSIZE);
 		g_autofree gchar *dev_name_esc =
 			g_markup_escape_text(dev->name, -1);
 		g_string_append_printf(
@@ -455,47 +492,47 @@ static void update_tooltip(NetgraphPlugin *this)
 			dev_name_esc, rx_buf, tx_buf);
 	}
 
-	format_human_size(this->scale, rx_buf, BUFSIZE);
+	format_human_size(this->scale, " ", rx_buf, BUFSIZE);
 	g_string_append_printf(label, _("current scale: %sB/s"), rx_buf);
 
 	gtk_widget_set_tooltip_markup(this->box, label->str);
 #undef BUFSIZE
 }
 
-static gchar *format_human_size(guint64 num, gchar *buf, gsize bufsize)
+static gchar *format_human_size(guint64 num, gchar* sep, gchar *buf, gsize bufsize)
 {
-	if (num < 1024) {
-		g_snprintf(buf, bufsize, "%ld ", num);
+	if (num < 1000) {
+		g_snprintf(buf, bufsize, "%ld%s", num, sep);
 	} else if (num < 10240) {
-		g_snprintf(buf, bufsize, "%.2f K", (gdouble)num / 1024UL);
+		g_snprintf(buf, bufsize, "%.2f%sK", (gdouble)num / 1024UL, sep);
 	} else if (num < 102400) {
-		g_snprintf(buf, bufsize, "%.1f K", (gdouble)num / 1024UL);
-	} else if (num < 1024UL * 1024) {
-		g_snprintf(buf, bufsize, "%.0f K", (gdouble)num / 1024UL);
+		g_snprintf(buf, bufsize, "%.1f%sK", (gdouble)num / 1024UL, sep);
+	} else if (num < 1024000) {
+		g_snprintf(buf, bufsize, "%.0f%sK", (gdouble)num / 1024UL, sep);
 	} else if (num < 1024UL * 10240) {
-		g_snprintf(buf, bufsize, "%.2f M", (gdouble)num / (1024UL * 1024));
+		g_snprintf(buf, bufsize, "%.2f%sM", (gdouble)num / (1024UL * 1024), sep);
 	} else if (num < 1024UL * 102400) {
-		g_snprintf(buf, bufsize, "%.1f M", (gdouble)num / (1024UL * 1024));
-	} else if (num < 1024UL * 1024 * 1024) {
-		g_snprintf(buf, bufsize, "%.0f M", (gdouble)num / (1024UL * 1024));
+		g_snprintf(buf, bufsize, "%.1f%sM", (gdouble)num / (1024UL * 1024), sep);
+	} else if (num < 1024UL * 1024000) {
+		g_snprintf(buf, bufsize, "%.0f%sM", (gdouble)num / (1024UL * 1024), sep);
 	} else if (num < 1024UL * 1024 * 10240) {
-		g_snprintf(buf, bufsize, "%.2f G", (gdouble)num / (1024UL * 1024 * 1024));
+		g_snprintf(buf, bufsize, "%.2f%sG", (gdouble)num / (1024UL * 1024 * 1024), sep);
 	} else if (num < 1024UL * 1024 * 102400) {
-		g_snprintf(buf, bufsize, "%.1f G", (gdouble)num / (1024UL * 1024 * 1024));
-	} else if (num < 1024UL * 1024 * 1024 * 1024) {
-		g_snprintf(buf, bufsize, "%.0f G", (gdouble)num / (1024UL * 1024 * 1024));
+		g_snprintf(buf, bufsize, "%.1f%sG", (gdouble)num / (1024UL * 1024 * 1024), sep);
+	} else if (num < 1024UL * 1024 * 1024000) {
+		g_snprintf(buf, bufsize, "%.0f%sG", (gdouble)num / (1024UL * 1024 * 1024), sep);
 	} else if (num < 1024UL * 1024 * 1024 * 10240) {
-		g_snprintf(buf, bufsize, "%.2f T", (gdouble)num / (1024UL * 1024 * 1024 * 1024));
+		g_snprintf(buf, bufsize, "%.2f%sT", (gdouble)num / (1024UL * 1024 * 1024 * 1024), sep);
 	} else if (num < 1024UL * 1024 * 1024 * 102400) {
-		g_snprintf(buf, bufsize, "%.1f T", (gdouble)num / (1024UL * 1024 * 1024 * 1024));
-	} else if (num < 1024UL * 1024 * 1024 * 1024 * 1024) {
-		g_snprintf(buf, bufsize, "%.0f T", (gdouble)num / (1024UL * 1024 * 1024 * 1024));
+		g_snprintf(buf, bufsize, "%.1f%sT", (gdouble)num / (1024UL * 1024 * 1024 * 1024), sep);
+	} else if (num < 1024UL * 1024 * 1024 * 1024000) {
+		g_snprintf(buf, bufsize, "%.0f%sT", (gdouble)num / (1024UL * 1024 * 1024 * 1024), sep);
 	} else if (num < 1024UL * 1024 * 1024 * 1024 * 10240) {
-		g_snprintf(buf, bufsize, "%.2f P", (gdouble)num / (1024UL * 1024 * 1024 * 1024 * 1024));
+		g_snprintf(buf, bufsize, "%.2f%sP", (gdouble)num / (1024UL * 1024 * 1024 * 1024 * 1024), sep);
 	} else if (num < 1024UL * 1024 * 1024 * 1024 * 102400) {
-		g_snprintf(buf, bufsize, "%.1f P", (gdouble)num / (1024UL * 1024 * 1024 * 1024 * 1024));
-	} else if (num < 1024UL * 1024 * 1024 * 1024 * 1024 * 1024) {
-		g_snprintf(buf, bufsize, "%.0f P", (gdouble)num / (1024UL * 1024 * 1024 * 1024 * 1024));
+		g_snprintf(buf, bufsize, "%.1f%sP", (gdouble)num / (1024UL * 1024 * 1024 * 1024 * 1024), sep);
+	} else if (num < 1024UL * 1024 * 1024 * 1024 * 1024000) {
+		g_snprintf(buf, bufsize, "%.0f%sP", (gdouble)num / (1024UL * 1024 * 1024 * 1024 * 1024), sep);
 	}
 	buf[bufsize - 1] = '\0';
 

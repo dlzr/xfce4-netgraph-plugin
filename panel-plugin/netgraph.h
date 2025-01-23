@@ -33,9 +33,11 @@ typedef struct {
 	guint size;
 	gboolean has_frame;
 	gboolean has_border;
+	gboolean show_scale;
 	GdkRGBA bg_color;
 	GdkRGBA rx_color;
 	GdkRGBA tx_color;
+	GdkRGBA text_color;
 	guint update_interval;
 	guint64 min_scale;
 	gchar *dev_names;  /* NULL when monitoring all interfaces. */
@@ -46,6 +48,7 @@ typedef struct {
 	GtkWidget *draw_area;
 	guint timeout_id;
 
+	GObject *text_color_row;
 	GObject *dev_names_entry;
 	guint dev_names_timeout_id;
 
@@ -60,6 +63,7 @@ void netgraph_save(XfcePanelPlugin *plugin, NetgraphPlugin *this);
 void netgraph_set_size(NetgraphPlugin *this, guint size);
 void netgraph_set_has_frame(NetgraphPlugin *this, gboolean has_frame);
 void netgraph_set_has_border(NetgraphPlugin *this, gboolean has_border);
+void netgraph_set_show_scale(NetgraphPlugin *this, gboolean show_scale);
 void netgraph_set_update_interval(NetgraphPlugin *this, guint update_interval);
 void netgraph_set_min_scale(NetgraphPlugin *this, guint64 min_scale);
 void netgraph_set_dev_names(NetgraphPlugin *this, const gchar *dev_names);

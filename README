@@ -27,11 +27,26 @@ plugins out there, but this one is slightly different:
    <img src="doc/properties.png" alt="Screenshot of the Properties dialog" width="38%">
 
 
-
 Installation
 ============
 
-The file 'INSTALL' contains generic installation instructions.
+From source code repository:
+
+    % ./autogen.sh
+    % make
+    % make install
+
+See also the file 'INSTALL' for generic installation instructions.
+
+
+Contributing
+============
+
+If you have added new strings that should be translated, also regenerate the .po files:
+
+    % make -C po update-po
+
+and include the updated .po files with your change.
 
 
 How to report bugs?

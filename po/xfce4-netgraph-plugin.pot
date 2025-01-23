@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-05 18:01+0200\n"
+"POT-Creation-Date: 2025-01-23 18:33+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,24 +17,24 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../panel-plugin/dialogs.c:105
+#: ../panel-plugin/dialogs.c:111
 msgid "Height (px):"
 msgstr ""
 
-#: ../panel-plugin/dialogs.c:263 ../panel-plugin/netgraph.desktop.in.h:2
+#: ../panel-plugin/dialogs.c:296 ../panel-plugin/netgraph.desktop.in.h:2
 msgid "Graphical representation of the network traffic"
 msgstr ""
 
-#: ../panel-plugin/dialogs.c:265
+#: ../panel-plugin/dialogs.c:298
 msgid "Copyright © 2019\n"
 msgstr ""
 
-#: ../panel-plugin/netgraph.c:449
+#: ../panel-plugin/netgraph.c:491
 #, c-format
 msgid "<b>%s</b>: %sB/s down; %sB/s up\n"
 msgstr ""
 
-#: ../panel-plugin/netgraph.c:454
+#: ../panel-plugin/netgraph.c:496
 #, c-format
 msgid "current scale: %sB/s"
 msgstr ""
@@ -72,37 +72,45 @@ msgid "Show border"
 msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:8
-msgid "Appearance"
+msgid "Show current scale"
 msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:9
-msgid "Background:"
+msgid "Appearance"
 msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:10
-msgid "Download traffic:"
+msgid "Background:"
 msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:11
-msgid "Upload traffic:"
+msgid "Download traffic:"
 msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:12
-msgid "Colors"
+msgid "Upload traffic:"
 msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:13
-msgid "Update interval (ms):"
+msgid "Current scale:"
 msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:14
-msgid "Don't zoom in below (KB/s):"
+msgid "Colors"
 msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:15
-msgid "Monitor"
+msgid "Update interval (ms):"
 msgstr ""
 
 #: ../panel-plugin/prefs-dialog.glade.h:16
+msgid "Don't zoom in below (KB/s):"
+msgstr ""
+
+#: ../panel-plugin/prefs-dialog.glade.h:17
+msgid "Monitor"
+msgstr ""
+
+#: ../panel-plugin/prefs-dialog.glade.h:18
 msgid "Behavior"
 msgstr ""
